@@ -81,6 +81,7 @@ def process_single_case(case_path: Path, target_dir: Path, filename_pattern: str
         case_info = {
             'count': len(image_files),
             'mean0': mean_first,
+            'std0': std_first,
             'affine': affine_first,
             'shape': shape_first
         }
@@ -178,10 +179,11 @@ def process_images(source_dir: Path, target_dir: Path):
         print(f"  Padding Case: {case_name} | Adding {num_to_pad} channels (from {num_existing} to {max_channels})")
 
         mean_first = info['mean0']
+        std_first = info['std0']
         affine = info['affine']
         shape = info['shape']
 
-        padding_value = -mean_first
+        padding_value = -mean_first / (std_first + EPSILON)
 
         padding_data = np.full(shape, padding_value, dtype=np.float32)
         padding_nii = nib.Nifti1Image(padding_data, affine)
