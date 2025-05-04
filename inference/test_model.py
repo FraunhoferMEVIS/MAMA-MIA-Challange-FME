@@ -1,5 +1,6 @@
 import argparse
 import json
+from sample_code_submission.model import Model
 import os
 
 
@@ -36,7 +37,8 @@ class Dataset:
 
 def main(dataset_folder: str, output_folder: str):
     dataset = Dataset(dataset_folder)
-    print(dataset.get_patient_id_list())
+    model = Model(dataset)
+    model.predict_segmentation(output_folder)
 
 
 
