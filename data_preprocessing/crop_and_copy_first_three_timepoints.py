@@ -19,7 +19,7 @@ def process_patient_json(patient_json_path: str, input_folder: str, output_folde
         file.writelines([str(label)])
     return "success"
 
-def process_patient_image(patient_id, input_folder, output_folder):
+def process_patient_image(patient_id: str, input_folder: str, output_folder: str):
     """
     Loads MRI timepoints and segmentation for a patient, crops them,
     and saves the stacked result.
@@ -58,7 +58,7 @@ def process_patient_image(patient_id, input_folder, output_folder):
     stacked_cropped_images = np.stack(cropped_images, axis=-1)
 
     output_nifti_image = nib.Nifti1Image(stacked_cropped_images, segmentation_image.affine)
-    output_filename = os.path.join(output_folder, 'images', f'{patient_id}_cropped_stacked.nii.gz')
+    output_filename = os.path.join(output_folder, 'images', f'{patient_id.lower()}.nii.gz')
     nib.save(output_nifti_image, output_filename)
     print(f"Processed and saved data for {patient_id}")
 
