@@ -32,18 +32,22 @@ def train_model(config, output_dir):
     use_amp = True if torch.cuda.is_available() else False
 
     # Dataset
-    dataset = NiftiImageDataset(
-        image_dir=os.path.join(config['data_path'], 'images'),
-        label_dir=os.path.join(config['data_path'], 'labels'),
+    train_dataset = NiftiImageDataset(
+        data_dir=os.path.join(config['data_path']),
+        data_split_file=config['data_split_file'],
+        group='training',
         target_size=config.get('target_size', [64, 128, 128])
     )
 
-    train_size = int(0.8 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+    val_dataset = NiftiImageDataset(
+        data_dir=os.path.join(config['data_path']),
+        data_split_file=config['data_split_file'],
+        group='validation',
+        target_size=config.get('target_size', [64, 128, 128])
+    )
 
-    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=10, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True, pin_memory=True, num_workers=6)
+    val_loader = DataLoader(val_dataset, batch_size=10, shuffle=False, pin_memory=True, num_workers=6)
 
     # Model
     weights = Swin3D_T_Weights.KINETICS400_V1

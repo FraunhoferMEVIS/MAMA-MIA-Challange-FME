@@ -1,5 +1,6 @@
 import os
 import argparse
+import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.functional import interpolate
@@ -8,22 +9,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NiftiImageDataset(Dataset):
-    def __init__(self, image_dir, label_dir, target_size=None, transform=None):
-        self.image_dir = image_dir
-        self.label_dir = label_dir
+    def __init__(self, data_dir, data_split_file, group, target_size=None, transform=None):
+        self.image_dir = os.path.join(data_dir, 'images')
+        self.label_dir = os.path.join(data_dir, 'labels')
         self.target_size = target_size  # Fixed voxel size (x, y, z)
         self.transform = transform
-        self.image_files = sorted([f for f in os.listdir(image_dir) if f.endswith('.nii.gz')])
+        data_split_file_path = os.path.join(data_dir, data_split_file)
+        with open(data_split_file_path, 'r') as file:
+            data_split = json.load(file)
+        self.case_names = data_split[group]
 
     def __len__(self):
-        return len(self.image_files)
+        return len(self.case_names)
 
     def __getitem__(self, idx):
-        image_name = self.image_files[idx]
-        patient_name = image_name.split('.nii.gz')[0]
+        case_name = self.case_names[idx]
         
-        image_path = os.path.join(self.image_dir, image_name)
-        label_path = os.path.join(self.label_dir, f"{patient_name}.txt")
+        image_path = os.path.join(self.image_dir, f"{case_name}.nii.gz")
+        label_path = os.path.join(self.label_dir, f"{case_name}.txt")
 
         nii_image = nib.load(image_path)
         image_data = nii_image.get_fdata().astype(np.float32)
