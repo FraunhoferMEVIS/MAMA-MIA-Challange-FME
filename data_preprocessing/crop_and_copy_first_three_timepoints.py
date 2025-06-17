@@ -10,13 +10,23 @@ def process_patient_json(patient_json_path: str, input_folder: str, output_folde
     with open(json_path, 'r') as file:
         patient_info = json.load(file)
     label = patient_info['primary_lesion']['pcr']
+    age = patient_info['clinical_data']['age']
+    menopausal_status = patient_info['clinical_data']['menopausal_status']
+    breast_density = patient_info['clinical_data']['breast_density']
 
     if label == None:
         return "label_is_none"
+    
+    patient_label_dict = {
+        "label": label,
+        "age": age,
+        "menopausal_status": menopausal_status,
+        "breast_density": breast_density
+    }
 
-    output_file_path = os.path.join(output_folder, 'labels', f"{patient_json_path.split('.')[0]}.txt")
+    output_file_path = os.path.join(output_folder, 'labels', f"{patient_json_path.split('.')[0]}.json")
     with open(output_file_path, 'w') as file:
-        file.writelines([str(label)])
+        json.dump(patient_label_dict, file)
     return "success"
 
 def process_patient_image(patient_id: str, input_folder: str, output_folder: str):
