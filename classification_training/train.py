@@ -46,8 +46,8 @@ def train_model(config, output_dir):
         target_size=config.get('target_size', [64, 128, 128])
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True, pin_memory=True, num_workers=6)
-    val_loader = DataLoader(val_dataset, batch_size=10, shuffle=False, pin_memory=True, num_workers=6)
+    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, pin_memory=True, num_workers=6)
+    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False, pin_memory=True, num_workers=6)
 
     # Model
     weights = Swin3D_T_Weights.KINETICS400_V1
@@ -56,9 +56,9 @@ def train_model(config, output_dir):
     model = model.to(device)
 
     # Loss, optimizer, scheduler
-    criterion = CrossEntropyLoss(label_smoothing=0.001)
-    optimizer = AdamW(model.parameters(), lr=1e-5, weight_decay=1e-3)
-    scheduler = CosineAnnealingLR(optimizer, T_max=200)
+    criterion = CrossEntropyLoss(label_smoothing=config['label_smoothing'])
+    optimizer = AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
+    scheduler = CosineAnnealingLR(optimizer, T_max=config['epochs'])
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     best_val_loss = float('inf')
@@ -68,7 +68,7 @@ def train_model(config, output_dir):
     with open(log_path, 'w') as f:
         f.write("epoch,train_loss,val_loss\n")
 
-    for epoch in range(1, 201):
+    for epoch in range(1, config['epochs']+1):
         model.train()
         running_loss = 0.0
         for images, labels in tqdm(train_loader, desc=f"Epoch {epoch}", leave=False):
