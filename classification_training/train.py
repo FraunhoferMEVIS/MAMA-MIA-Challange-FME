@@ -21,7 +21,7 @@ def validate(model, dataloader, device, criterion):
     model.eval()
     running_loss = 0.0
     with torch.no_grad():
-        for images, labels in dataloader:
+        for images, labels, _ in dataloader:
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -83,7 +83,7 @@ def train_model(config, output_dir):
     for epoch in range(1, config['epochs']+1):
         model.train()
         running_loss = 0.0
-        for images, labels in tqdm(train_loader, desc=f"Epoch {epoch}", leave=False):
+        for images, labels, _ in tqdm(train_loader, desc=f"Epoch {epoch}", leave=False):
             images, labels = images.to(device), labels.to(device)
             with torch.autocast(device_type=device.type, enabled=use_amp):
                 outputs = model(images)

@@ -31,7 +31,7 @@ class NiftiImageDataset(Dataset):
         case_name = self.case_names[idx]
         
         image_path = os.path.join(self.image_dir, f"{case_name}.nii.gz")
-        label_path = os.path.join(self.label_dir, f"{case_name}.txt")
+        label_path = os.path.join(self.label_dir, f"{case_name}.json")
 
         nii_image = nib.load(image_path)
         image_data = nii_image.get_fdata().astype(np.float32)
@@ -43,8 +43,9 @@ class NiftiImageDataset(Dataset):
             image = interpolate(image, self.target_size, mode='trilinear')  # Bilinear interpolation
             image = image.squeeze(0)
 
-        with open(label_path, 'r') as f:
-            label = int(f.read().strip())
+        with open(label_path, 'r') as file:
+            label_dict = json.load(file)
+            label = label_dict['label']
         
         label = torch.tensor(label, dtype=torch.long)
 
@@ -52,7 +53,7 @@ class NiftiImageDataset(Dataset):
             for transform in self.transforms:
                 image = transform(image)
 
-        return image, label
+        return image, label, label_dict
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Dataloader for NIfTI images with fixed image size.")
