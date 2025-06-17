@@ -83,11 +83,11 @@ def create_nfold_splits(stems: List[str], n_folds: int, seed: int = 42) -> List[
         end_idx = start_idx + current_fold_size
         
         # Validation set is the current fold
-        validation = shuffled_stems[start_idx:end_idx]
+        validation = sorted(shuffled_stems[start_idx:end_idx])
         
         # Training set is all other samples
-        training = shuffled_stems[:start_idx] + shuffled_stems[end_idx:]
-        
+        training = sorted(shuffled_stems[:start_idx] + shuffled_stems[end_idx:])
+
         fold_data = {
             "fold": fold_idx + 1,
             "total_samples": len(shuffled_stems),
