@@ -39,7 +39,7 @@ def train_model(config, output_dir):
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='training',
-        target_size=config.get('target_size', [64, 128, 128]),
+        target_size=config['target_size'],
         transforms=data_augmentation_transforms
     )
 
@@ -47,7 +47,7 @@ def train_model(config, output_dir):
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='validation',
-        target_size=config.get('target_size', [64, 128, 128])
+        target_size=config['target_size']
     )
 
     train_loader = DataLoader(train_dataset,
