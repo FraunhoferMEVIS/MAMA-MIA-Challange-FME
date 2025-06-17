@@ -1,4 +1,4 @@
-numpy
-nibabel
-tqdm
-scipy
+matplotlib==3.10.3
+nibabel==5.3.2
+scipy==1.15.3
+tqdm==4.67.1
