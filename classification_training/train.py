@@ -10,7 +10,8 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
 
-from dataloader import NiftiImageDataset  # replace with actual filename
+from dataloader import NiftiImageDataset
+from augmentations import random_mirroring, batch_generators_intensity_augmentations
 
 def parse_config(config_path):
     with open(config_path, 'r') as f:
@@ -31,12 +32,15 @@ def train_model(config, output_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     use_amp = True if torch.cuda.is_available() else False
 
-    # Dataset
+    data_augmentation_transforms = [random_mirroring, batch_generators_intensity_augmentations]
+
+
     train_dataset = NiftiImageDataset(
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='training',
-        target_size=config.get('target_size', [64, 128, 128])
+        target_size=config.get('target_size', [64, 128, 128]),
+        transforms=data_augmentation_transforms
     )
 
     val_dataset = NiftiImageDataset(
@@ -46,8 +50,16 @@ def train_model(config, output_dir):
         target_size=config.get('target_size', [64, 128, 128])
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, pin_memory=True, num_workers=6)
-    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False, pin_memory=True, num_workers=6)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=config['batch_size'],
+                              shuffle=True,
+                              pin_memory=True,
+                              num_workers=6)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=config['batch_size'],
+                            shuffle=False,
+                            pin_memory=True,
+                            num_workers=6)
 
     # Model
     weights = Swin3D_T_Weights.KINETICS400_V1

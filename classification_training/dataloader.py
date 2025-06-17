@@ -9,11 +9,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NiftiImageDataset(Dataset):
-    def __init__(self, data_dir, data_split_file, group, target_size=None, transform=None):
+    def __init__(self,
+                 data_dir: str,
+                 data_split_file: str,
+                 group: str,
+                 target_size: tuple[int],
+                 transforms: list = []):
         self.image_dir = os.path.join(data_dir, 'images')
         self.label_dir = os.path.join(data_dir, 'labels')
         self.target_size = target_size  # Fixed voxel size (x, y, z)
-        self.transform = transform
+        self.transforms = transforms
         data_split_file_path = os.path.join(data_dir, data_split_file)
         with open(data_split_file_path, 'r') as file:
             data_split = json.load(file)
@@ -43,8 +48,9 @@ class NiftiImageDataset(Dataset):
         
         label = torch.tensor(label, dtype=torch.long)
 
-        if self.transform:
-            image = self.transform(image)
+        if self.transforms:
+            for transform in self.transforms:
+                image = transform(image)
 
         return image, label
 
