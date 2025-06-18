@@ -46,6 +46,13 @@ class NiftiImageDataset(Dataset):
         with open(label_path, 'r') as file:
             label_dict = json.load(file)
             label = label_dict['label']
+            if label_dict['age'] == None:
+                # Fill with mean value
+                label_dict['age'] = float('nan')
+            if label_dict['menopausal_status'][:3] == 'pre':
+                label_dict['menopausal_status'] = 'pre'
+            elif label_dict['menopausal_status'][:4] == 'peri':
+                label_dict['menopausal_status'] = 'peri'
         
         label = torch.tensor(label, dtype=torch.long)
 
