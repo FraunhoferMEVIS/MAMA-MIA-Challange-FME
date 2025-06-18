@@ -115,17 +115,17 @@ def compute_fairness_metrics(predictions, labels, metadata_dict_list, selected_f
     
     # Compute fairness score
     if equalized_odds_disparities:
-        fairness_score = np.mean(list(equalized_odds_disparities.values()))
-        fairness_score = np.clip(fairness_score, 0, 1)
+        mean_equalized_odds_disparities = np.mean(list(equalized_odds_disparities.values()))
+        mean_equalized_odds_disparities = np.clip(mean_equalized_odds_disparities, 0, 1)
     else:
-        fairness_score = 0.0
+        mean_equalized_odds_disparities = 0.0
     
     return {
         'precision': precision,
         'recall': recall,
         'balanced_accuracy': balanced_accuracy,
-        'fairness_score': fairness_score,
-        'fairness_score_normalized': 1 - fairness_score,
+        'mean_equalized_odds_disparities': mean_equalized_odds_disparities,
+        'fairness_score': 1 - mean_equalized_odds_disparities,
         'equalized_odds_disparities': equalized_odds_disparities,
         'results_df': results_df
     }
@@ -194,16 +194,17 @@ def validate(model, dataloader, device, criterion, selected_fairness_variables=N
         recall = fairness_metrics['recall']
 
         # Compute ranking score
-        performance_score = fairness_metrics['balanced_accuracy']
+        balanced_accuracy = fairness_metrics['balanced_accuracy']
         fairness_score = fairness_metrics['fairness_score']
-        ranking_score = (1 - alpha) * performance_score + alpha * (1 - fairness_score)
+        
+        ranking_score = (1 - alpha) * balanced_accuracy + alpha * fairness_score
         
         # Print metrics
         print(f"Validation Loss: {validation_loss:.4f}")
         print(f"Precision: {precision:.4f}")
         print(f"Recall: {recall:.4f}")
-        print(f"Balanced Accuracy: {performance_score:.4f}")
-        print(f"Fairness Score (1-disparity): {fairness_metrics['fairness_score_normalized']:.4f}")
+        print(f"Balanced Accuracy: {balanced_accuracy:.4f}")
+        print(f"Fairness Score (1-disparity): {fairness_score:.4f}")
         print(f"Ranking Score: {ranking_score:.4f}")
         
         # Print disparity details
@@ -224,8 +225,8 @@ def validate(model, dataloader, device, criterion, selected_fairness_variables=N
             
             # Append metrics
             with open(detailed_log_path, 'a') as f:
-                line = f"{epoch},{validation_loss:.4f},{precision:.4f},{recall:.4f},{performance_score:.4f}," \
-                       f"{fairness_metrics['fairness_score_normalized']:.4f},{ranking_score:.4f}"
+                line = f"{epoch},{validation_loss:.4f},{precision:.4f},{recall:.4f},{balanced_accuracy:.4f}," \
+                       f"{fairness_metrics['fairness_score']:.4f},{ranking_score:.4f}"
                 for var in selected_fairness_variables:
                     disparity = fairness_metrics['equalized_odds_disparities'].get(var, 0.0)
                     line += f",{disparity:.4f}"
@@ -316,7 +317,7 @@ def train_model(config, output_dir):
         # Extended validation with challenge metrics
         val_loss, ranking_score, fairness_metrics = validate(
             model, val_loader, device, criterion, 
-            selected_fairness_variables, epoch, log_path
+            selected_fairness_variables, epoch=epoch, log_path=log_path
         )
         
         scheduler.step()
