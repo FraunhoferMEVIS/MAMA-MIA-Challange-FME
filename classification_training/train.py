@@ -14,7 +14,7 @@ import numpy as np
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, precision_score, recall_score
 
 from dataloader import NiftiImageDataset
-from augmentations import random_mirroring, batch_generators_intensity_augmentations
+from augmentations import random_mirroring, batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
 
 def parse_config(config_path):
     with open(config_path, 'r') as f:
@@ -242,14 +242,13 @@ def train_model(config, output_dir):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     use_amp = True if torch.cuda.is_available() else False
 
-    data_augmentation_transforms = [random_mirroring, batch_generators_intensity_augmentations]
+    data_augmentation_transforms = [random_mirroring,
+                                    batch_generators_intensity_augmentations,
+                                    batch_generators_spatial_augmentations]
 
     # Fairness evaluation settings
     selected_fairness_variables = config.get('fairness_variables', ['age', 'breast_density', 'menopausal_status'])
-    alpha = config.get('alpha', 0.5)  # Weight for ranking score
-    
     print(f"Fairness variables: {selected_fairness_variables}")
-    print(f"Alpha (fairness weight): {alpha}")
 
     train_dataset = NiftiImageDataset(
         data_dir=os.path.join(config['data_path']),
@@ -275,7 +274,7 @@ def train_model(config, output_dir):
                             batch_size=config['batch_size'],
                             shuffle=False,
                             pin_memory=True,
-                            num_workers=0)
+                            num_workers=6)
 
     # Model
     weights = Swin3D_T_Weights.KINETICS400_V1
@@ -317,7 +316,7 @@ def train_model(config, output_dir):
         # Extended validation with challenge metrics
         val_loss, ranking_score, fairness_metrics = validate(
             model, val_loader, device, criterion, 
-            selected_fairness_variables, alpha, epoch, log_path
+            selected_fairness_variables, epoch, log_path
         )
         
         scheduler.step()
