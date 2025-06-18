@@ -284,7 +284,8 @@ def train_model(config, output_dir):
     model = model.to(device)
 
     # Loss, optimizer, scheduler
-    criterion = CrossEntropyLoss(label_smoothing=config['label_smoothing'])
+    class_weights = torch.Tensor(config['class_weights']).to(device)
+    criterion = CrossEntropyLoss(weight=class_weights, label_smoothing=config['label_smoothing'])
     optimizer = AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
     scheduler = CosineAnnealingLR(optimizer, T_max=config['epochs'])
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
