@@ -16,7 +16,7 @@ class Dataset:
             self.patient_id_list.append(patient_id_lower)
             patient_image_folder = os.path.join(images_folder, patient_id_lower)
             dce_mri_paths = []
-            for dce_mir_path in os.listdir(patient_image_folder):
+            for dce_mir_path in sorted(os.listdir(patient_image_folder)):
                 dce_mri_paths.append(os.path.join(patient_image_folder, dce_mir_path))
             self.patient_dce_mri_paths[patient_id_lower] = dce_mri_paths
             patient_info_json = os.path.join(patient_info_folder, f'{patient_id_lower}.json')

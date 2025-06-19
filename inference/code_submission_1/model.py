@@ -211,6 +211,7 @@ class Model:
         # === Participants can modify how they prepare input ===
         patient_ids = self.dataset.get_patient_id_list()
         for patient_id in patient_ids:
+            print(f'Segmenting case {patient_id}...')
             images = self.dataset.get_dce_mri_path_list(patient_id)
 
             pre_contrast_image_path = images[0]
