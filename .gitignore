@@ -1,2 +1,2 @@
-inference/sample_code_submission/Dataset*
+inference/*/Dataset*
 __pycache__

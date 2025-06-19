@@ -151,6 +151,7 @@ import shutil
 import numpy as np
 import torch
 import SimpleITK as sitk
+import nibabel as nib
 # === nnUNetv2 IMPORTS ===
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -166,9 +167,6 @@ class Model:
         # MANDATOR
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
-        # Only if using nnUNetv2, you can define here any other variables
-        self.dataset_id = "105"  # Dataset ID must match your folder structure
-        self.config = "3d_fullres" # nnUNetv2 configuration
         
 
     def predict_segmentation(self, output_dir):
@@ -203,8 +201,8 @@ class Model:
         )
         # === Load your trained model from a specific fold ===
         predictor.initialize_from_trained_model_folder(
-            '/app/ingested_program/sample_code_submission/Dataset105_full_image/nnUNetTrainer__nnUNetPlans__3d_fullres',
-            use_folds=(0,), checkpoint_name='checkpoint_final.pth')
+            '/app/ingested_program/code_submission_1/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetResEncUNetLPlans24GB__3d_fullres',
+            use_folds=(0,1,2,3,4), checkpoint_name='checkpoint_best.pth')
         
         # === Build nnUNet-compatible input images folder ===
         nnunet_input_images = os.path.join(output_dir, 'nnunet_input_images')
@@ -214,13 +212,21 @@ class Model:
         patient_ids = self.dataset.get_patient_id_list()
         for patient_id in patient_ids:
             images = self.dataset.get_dce_mri_path_list(patient_id)
-            # Select the image or images to be used to predict the final segmentation
-            # For example, using only the first post-contrast image
-            first_post_contrast_image = images[1]
-            # Save the image in the nnUNet format (ending in _0000.nii.gz)
+
+            pre_contrast_image_path = images[0]
+            first_post_contrast_image_path = images[1]
+
+            nii_precontrast = nib.load(str(pre_contrast_image_path))
+            data_precontrast = nii_precontrast.get_fdata().astype(np.int16)
+            nii_postcontrast = nib.load(str(first_post_contrast_image_path))
+            data_postcontrast = nii_postcontrast.get_fdata().astype(np.int16)
+
+            subtraction_data = data_postcontrast - data_precontrast
+
+            subtraction_nii = nib.Nifti1Image(subtraction_data.astype(np.int16), nii_postcontrast.affine, nii_postcontrast.header)
+            subtraction_nii.set_data_dtype(np.int16)
             nnunet_image_path = os.path.join(nnunet_input_images, f"{patient_id}_0001_0000.nii.gz")
-            # Copy and rename the image to the nnUNet format
-            shutil.copy(first_post_contrast_image, nnunet_image_path)
+            nib.save(subtraction_nii, nnunet_image_path)
 
         # === Output folder for raw nnUNet segmentations ===
         output_dir_nnunet = os.path.join(output_dir, 'nnunet_seg')
