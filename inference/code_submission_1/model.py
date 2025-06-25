@@ -297,6 +297,7 @@ class Model:
         """
         patient_ids = self.dataset.get_patient_id_list()
         predictions = []
+        os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
         
         for patient_id in patient_ids:
             image_paths = self.dataset.get_dce_mri_path_list(patient_id)
@@ -326,6 +327,11 @@ class Model:
                 pcr_prediction = 0
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
+                # Save cropped image for debugging
+                cropped_nii = nib.Nifti1Image(cropped_image, nii_image.affine, nii_image.header)
+                cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
+                nib.save(cropped_nii, cropped_nii_path)
+
                 input_image = torch.from_numpy(cropped_image)
                 input_image = input_image.to(torch.device('cuda'))
                 input_image = input_image.unsqueeze(0)
@@ -342,9 +348,7 @@ class Model:
                     logits = model(input_image)
                     result = torch.nn.functional.softmax(logits)
                     results[index] = result.cpu().detach().numpy()
-                print(results)
                 mean_result = results.mean(axis=0)
-                print(mean_result)
                 probability = mean_result[1]
                 pcr_prediction = int(probability > 0.5)
             
