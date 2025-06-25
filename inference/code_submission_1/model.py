@@ -328,7 +328,8 @@ class Model:
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
                 # Save cropped image for debugging
-                cropped_nii = nib.Nifti1Image(cropped_image, nii_image.affine, nii_image.header)
+                cropped_image_transposed = cropped_image.transpose((3,2,1,0))
+                cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
                 cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
                 nib.save(cropped_nii, cropped_nii_path)
 
