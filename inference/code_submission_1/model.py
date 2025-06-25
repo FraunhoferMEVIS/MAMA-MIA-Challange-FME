@@ -304,12 +304,14 @@ class Model:
             for image_index in range(3):
                 image_path = image_paths[image_index]
                 nii_image = nib.load(image_path)
-                image_data = nii_image.get_fdata().astype(np.int16)
+                image_data = nii_image.get_fdata().astype(np.float32)
                 image_data = image_data.transpose((2,1,0))
                 image_data = np.expand_dims(image_data, axis=0)
                 images.append(image_data)
             image_array = np.concatenate(images, axis=0)
-            print('Image shape:', image_array.shape)
+            mean = image_array[0].mean()
+            std = image_array[0].std()
+            image_array = (image_array - mean ) / std
 
             seg_path = os.path.join(self.predicted_segmentations, f"{patient_id}.nii.gz")
             if not os.path.exists(seg_path):
@@ -388,11 +390,7 @@ class Model:
             mask = array
         
         crop_slice, _ = self._get_largest_component_crop(mask)
-        print(crop_slice)
         slice_with_channels = (slice(None),) + crop_slice
-        print(slice_with_channels)
-        print(array.shape)
         cropped_array = array[slice_with_channels]
-        print(cropped_array.shape)
         
         return cropped_array, crop_slice
