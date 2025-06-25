@@ -320,7 +320,6 @@ class Model:
             
             segmentation = sitk.ReadImage(seg_path)
             segmentation_array = sitk.GetArrayFromImage(segmentation)
-            print('Segmentation array shape:', segmentation_array.shape)
             segmentation_empty = not segmentation_array.any()
             if segmentation_empty:
                 probability = 0
@@ -340,7 +339,8 @@ class Model:
                     model.load_state_dict(weights)
                     model.eval()
                     model.to(torch.device('cuda'))
-                    result = model(input_image)
+                    logits = model(input_image)
+                    result = torch.nn.functional.softmax(logits)
                     results[index] = result.cpu().detach().numpy()
                 print(results)
                 mean_result = results.mean(axis=0)
