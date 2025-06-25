@@ -337,7 +337,7 @@ class Model:
                 input_image = input_image.to(torch.device('cuda'))
                 input_image = input_image.unsqueeze(0)
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
-                results = np.zeros((5, 2))
+                results = []
                 for index, weigths_path in enumerate(os.listdir(self.classification_model_folder)):
                     weights_path_global = os.path.join(self.classification_model_folder, weigths_path)
                     weights = torch.load(weights_path_global, weights_only=True)
@@ -346,10 +346,15 @@ class Model:
                     model.load_state_dict(weights)
                     model.eval()
                     model.to(torch.device('cuda'))
-                    logits = model(input_image)
-                    result = torch.nn.functional.softmax(logits)
-                    results[index] = result.cpu().detach().numpy()
-                mean_result = results.mean(axis=0)
+                    flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
+                    for dimensions in flipping_dimensions:
+                        flipped_image = torch.flip(input_image, dims=dimensions)
+                        logits = model(flipped_image)
+                        result = torch.nn.functional.softmax(logits)
+                        results.append(result.cpu().detach().numpy())
+                results_array = np.array(results)
+                print(results_array)
+                mean_result = results_array.mean(axis=0)
                 probability = mean_result[1]
                 pcr_prediction = int(probability > 0.5)
             
