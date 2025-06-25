@@ -152,6 +152,7 @@ import numpy as np
 import torch
 import SimpleITK as sitk
 import nibabel as nib
+from scipy import ndimage
 # === nnUNetv2 IMPORTS ===
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -167,6 +168,7 @@ class Model:
         # MANDATOR
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
+        self.classification_model_folder = "/app/ingested_program/code_submission_1/classification_models"
         
 
     def predict_segmentation(self, output_dir):
@@ -211,7 +213,6 @@ class Model:
         # === Participants can modify how they prepare input ===
         patient_ids = self.dataset.get_patient_id_list()
         for patient_id in patient_ids:
-            print(f'Segmenting case {patient_id}...')
             images = self.dataset.get_dce_mri_path_list(patient_id)
 
             pre_contrast_image_path = images[0]
@@ -297,34 +298,49 @@ class Model:
         predictions = []
         
         for patient_id in patient_ids:
-            if self.predicted_segmentations:
-                # === Example using segmentation-derived feature (volume) ===
-                seg_path = os.path.join(self.predicted_segmentations, f"{patient_id}.nii.gz")
-                if not os.path.exists(seg_path):
-                    continue
-                
-                segmentation = sitk.ReadImage(seg_path)
-                segmentation_array = sitk.GetArrayFromImage(segmentation)
-                # You can use the predicted segmentation to compute features if task 1 is done
-                # For example, compute the volume of the segmented region
-                # ...
+            image_paths = self.dataset.get_dce_mri_path_list(patient_id)
 
-                # RANDOM CLASSIFIER AS EXAMPLE
-                # Replace with real feature extraction + ML model
-                probability = np.random.rand()
-                pcr_prediction = int(probability > 0.5)
+            images = []
+            for image_index in range(3):
+                image_path = image_paths[image_index]
+                nii_image = nib.load(image_path)
+                image_data = nii_image.get_fdata().astype(np.int16)
+                image_data = image_data.transpose((2,1,0))
+                image_data = image_data.expand_dims(axis=0)
+                print(image_data.shape)
+                images.append(image_data)
+            image_array = np.concatenate(images, axis=0)
+            print(image_array.shape)
 
+            seg_path = os.path.join(self.predicted_segmentations, f"{patient_id}.nii.gz")
+            if not os.path.exists(seg_path):
+                continue
+            
+            segmentation = sitk.ReadImage(seg_path)
+            segmentation_array = sitk.GetArrayFromImage(segmentation)
+            segmentation_empty = not segmentation_array.any()
+            if segmentation_empty:
+                probability = 0
+                pcr_prediction = 0
             else:
-                # === Example using raw image intensity for rule-based prediction ===
-                image_paths = self.dataset.get_dce_mri_path_list(patient_id)
-                if not image_paths:
-                    continue
-                
-                image = sitk.ReadImage(image_paths[1])
-                image_array = sitk.GetArrayFromImage(image)
-                mean_intensity = np.mean(image_array)
-                pcr_prediction = 1 if mean_intensity > 500 else 0
-                probability = np.random.rand() if pcr_prediction == 1 else np.random.rand() / 2
+                cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
+                input_image = torch.from_numpy(cropped_image)
+                input_image.to(torch.device('cuda'))
+                input_image = input_image.unsqueeze(0)
+                input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
+                input_image = input_image.squeeze(0)
+                results = np.zeros(5, 2)
+                for index, model_path in enumerate(os.listdir(self.classification_model_folder)):
+                    model_path_global = os.path.join(self.classification_model_folder, model_path)
+                    model = torch.load(model_path_global)
+                    model.eval()
+                    model.to(torch.device('cuda'))
+                    result = model(input_image)
+                    results[index] = result.cpu().to_numpy()
+                    print(result)
+                mean_result = results.mean(axis=0)
+                probability = mean_result[1]
+                pcr_prediction = int(probability > 0.5)
             
             # === MANDATORY output format ===
             predictions.append({
@@ -335,70 +351,46 @@ class Model:
 
         return pd.DataFrame(predictions)
 
-# IMPORTANT: The definition of this method will skip the execution of `predict_segmentation` and `predict_classification` if defined
-    # def predict_segmentation_and_classification(self, output_dir):
-    #     """
-    #     Define this method if your model performs both Task 1 (segmentation) and Task 2 (classification).
-    #     
-    #     This naive combined implementation:
-    #         - Generates segmentation masks using thresholding.
-    #         - Applies a rule-based volume threshold for response classification.
-    #     
-    #     Args:
-    #         output_dir (str): Path to the output directory.
-    #     
-    #     Returns:
-    #         str: Path to the directory containing the predicted segmentation masks (Task 1).
-    #         DataFrame: Pandas DataFrame containing predicted labels and scores (Task 2).
-    #     """
-    #     # Folder to store predicted segmentation masks
-    #     output_dir_final = os.path.join(output_dir, 'pred_segmentations')
-    #     os.makedirs(output_dir_final, exist_ok=True)
+    def _get_largest_component_crop(self, mask: np.ndarray) -> tuple[tuple, np.ndarray]:
+        binary_mask = mask.astype(bool)
+        
+        # Find connected components
+        labeled_array, num_components = ndimage.label(binary_mask, 
+                                                      structure=ndimage.generate_binary_structure(mask.ndim, connectivity=3))
+        
+        if num_components == 0:
+            empty_slice = tuple(slice(0, 0) for _ in range(mask.ndim))
+            empty_mask = np.zeros_like(mask, dtype=bool)
+            return empty_slice, empty_mask
+        
+        # Find the largest component by counting pixels in each label
+        component_sizes = np.bincount(labeled_array.ravel())
+        # Skip background (label 0)
+        component_sizes[0] = 0
+        largest_component_label = np.argmax(component_sizes)
+        
+        largest_component_mask = (labeled_array == largest_component_label)
+        
+        # Find bounding box of the largest component
+        coords = np.where(largest_component_mask)
+        
+        # Create slice objects for each dimension
+        crop_slice = tuple(
+            slice(int(np.min(coord)), int(np.max(coord)) + 1) 
+            for coord in coords
+        )
+        
+        return crop_slice, largest_component_mask.astype(mask.dtype)
 
-    #     predictions = []
 
-    #     for patient_id in self.dataset.get_patient_id_list():
-    #         # Load DCE-MRI series (assuming post-contrast is the second timepoint)
-    #         image_paths = self.dataset.get_dce_mri_path_list(patient_id)
-    #         if not image_paths or len(image_paths) < 2:
-    #             continue
-
-    #         image = sitk.ReadImage(image_paths[1])
-    #         image_array = sitk.GetArrayFromImage(image)
-
-    #         # Step 1: Naive threshold-based segmentation
-    #         threshold_value = 150
-    #         segmentation_array = (image_array > threshold_value).astype(np.uint8)
-
-    #         # Step 2: Mask segmentation to breast region using provided lesion coordinates
-    #         patient_info = self.dataset.read_json_file(patient_id)
-    #         if not patient_info or "primary_lesion" not in patient_info:
-    #             continue
-
-    #         coords = patient_info["primary_lesion"]["breast_coordinates"]
-    #         x_min, x_max = coords["x_min"], coords["x_max"]
-    #         y_min, y_max = coords["y_min"], coords["y_max"]
-    #         z_min, z_max = coords["z_min"], coords["z_max"]
-
-    #         masked_segmentation = np.zeros_like(segmentation_array)
-    #         masked_segmentation[x_min:x_max, y_min:y_max, z_min:z_max] = \
-    #             segmentation_array[x_min:x_max, y_min:y_max, z_min:z_max]
-
-    #         # Save predicted segmentation
-    #         masked_seg_image = sitk.GetImageFromArray(masked_segmentation)
-    #         masked_seg_image.CopyInformation(image)
-    #         seg_path = os.path.join(output_dir_final, f"{patient_id}.nii.gz")
-    #         sitk.WriteImage(masked_seg_image, seg_path)
-
-    #         # Step 3: Classify based on tumour volume (simple rule-based)
-    #         tumor_volume = np.sum(masked_segmentation > 0)
-    #         pcr_prediction = 1 if tumor_volume < 1000 else 0
-    #         probability = 0.5  # Example: fixed confidence
-
-    #         predictions.append({
-    #             "patient_id": patient_id,
-    #             "pcr": pcr_prediction,
-    #             "score": probability
-    #         })
-
-    #     return output_dir_final, pd.DataFrame(predictions)
+    def _crop_to_largest_component(self, array: np.ndarray, mask: np.ndarray = None) -> tuple[np.ndarray, tuple]:
+        if mask is None:
+            mask = array
+        
+        crop_slice, _ = self._get_largest_component_crop(mask)
+        print(crop_slice)
+        print(array.shape)
+        cropped_array = array[crop_slice]
+        print(cropped_array.shape)
+        
+        return cropped_array, crop_slice
