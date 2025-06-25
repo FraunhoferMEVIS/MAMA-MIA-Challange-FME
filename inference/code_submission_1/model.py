@@ -341,7 +341,7 @@ class Model:
                     model.eval()
                     model.to(torch.device('cuda'))
                     result = model(input_image)
-                    results[index] = result.cpu().numpy()
+                    results[index] = result.cpu().detach().numpy()
                 print(results)
                 mean_result = results.mean(axis=0)
                 print(mean_result)
