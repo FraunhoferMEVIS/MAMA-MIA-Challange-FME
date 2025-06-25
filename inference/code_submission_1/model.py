@@ -150,6 +150,7 @@ import shutil
 # You can remove unused imports above if not needed for your solution
 import numpy as np
 import torch
+import torchvision
 import SimpleITK as sitk
 import nibabel as nib
 from scipy import ndimage
@@ -332,9 +333,12 @@ class Model:
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
                 input_image = input_image.squeeze(0)
                 results = np.zeros((5, 2))
-                for index, model_path in enumerate(os.listdir(self.classification_model_folder)):
-                    model_path_global = os.path.join(self.classification_model_folder, model_path)
-                    model = torch.load(model_path_global)
+                for index, weigths_path in enumerate(os.listdir(self.classification_model_folder)):
+                    weights_path_global = os.path.join(self.classification_model_folder, weigths_path)
+                    weights = torch.load(weights_path_global, weights_only=True)
+                    model = torchvision.models.video.swin3d_t()
+                    model.head = torch.nn.Linear(model.head.in_features, 2)  # 2 labels
+                    model.load_state_dict(weights)
                     model.eval()
                     model.to(torch.device('cuda'))
                     result = model(input_image)
