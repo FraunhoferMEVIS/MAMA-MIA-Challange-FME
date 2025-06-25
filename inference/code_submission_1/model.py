@@ -389,8 +389,10 @@ class Model:
         
         crop_slice, _ = self._get_largest_component_crop(mask)
         print(crop_slice)
+        slice_with_channels = (slice(None),) + crop_slice
+        print(slice_with_channels)
         print(array.shape)
-        cropped_array = array[:, crop_slice]
+        cropped_array = array[slice_with_channels]
         print(cropped_array.shape)
         
         return cropped_array, crop_slice
