@@ -331,7 +331,7 @@ class Model:
                 input_image = input_image.unsqueeze(0)
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
                 input_image = input_image.squeeze(0)
-                results = np.zeros(5, 2)
+                results = np.zeros((5, 2))
                 for index, model_path in enumerate(os.listdir(self.classification_model_folder)):
                     model_path_global = os.path.join(self.classification_model_folder, model_path)
                     model = torch.load(model_path_global)
