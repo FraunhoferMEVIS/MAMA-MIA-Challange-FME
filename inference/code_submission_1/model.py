@@ -359,8 +359,10 @@ class Model:
                 "pcr": pcr_prediction,
                 "score": probability
             })
+            prediction_df = pd.DataFrame(predictions)
+            prediction_df.to_csv(os.path.join(output_dir, 'predictions.csv'))
 
-        return pd.DataFrame(predictions)
+        return prediction_df
 
     def _get_largest_component_crop(self, mask: np.ndarray) -> tuple[tuple, np.ndarray]:
         binary_mask = mask.astype(bool)

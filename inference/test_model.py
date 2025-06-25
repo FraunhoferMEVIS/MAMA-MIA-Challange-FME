@@ -39,8 +39,7 @@ def main(dataset_folder: str, output_folder: str):
     dataset = Dataset(dataset_folder)
     model = Model(dataset)
     model.predict_segmentation(output_folder)
-    prediction_df = model.predict_classification(output_folder)
-    prediction_df.to_csv(os.path.join(output_folder, 'prediction_results.csv'))
+    model.predict_classification(output_folder)
 
 
 
