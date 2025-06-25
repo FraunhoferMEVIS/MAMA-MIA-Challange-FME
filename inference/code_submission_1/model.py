@@ -341,9 +341,10 @@ class Model:
                     model.eval()
                     model.to(torch.device('cuda'))
                     result = model(input_image)
-                    results[index] = result.cpu().to_numpy()
-                    print(result)
+                    results[index] = result.cpu().numpy()
+                print(results)
                 mean_result = results.mean(axis=0)
+                print(mean_result)
                 probability = mean_result[1]
                 pcr_prediction = int(probability > 0.5)
             
