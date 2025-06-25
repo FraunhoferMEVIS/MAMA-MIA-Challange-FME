@@ -307,10 +307,9 @@ class Model:
                 image_data = nii_image.get_fdata().astype(np.int16)
                 image_data = image_data.transpose((2,1,0))
                 image_data = np.expand_dims(image_data, axis=0)
-                print(image_data.shape)
                 images.append(image_data)
             image_array = np.concatenate(images, axis=0)
-            print(image_array.shape)
+            print('Image shape:', image_array.shape)
 
             seg_path = os.path.join(self.predicted_segmentations, f"{patient_id}.nii.gz")
             if not os.path.exists(seg_path):
@@ -318,6 +317,7 @@ class Model:
             
             segmentation = sitk.ReadImage(seg_path)
             segmentation_array = sitk.GetArrayFromImage(segmentation)
+            print('Segmentation array shape:', segmentation_array.shape)
             segmentation_empty = not segmentation_array.any()
             if segmentation_empty:
                 probability = 0
@@ -390,7 +390,7 @@ class Model:
         crop_slice, _ = self._get_largest_component_crop(mask)
         print(crop_slice)
         print(array.shape)
-        cropped_array = array[crop_slice]
+        cropped_array = array[:, crop_slice]
         print(cropped_array.shape)
         
         return cropped_array, crop_slice
