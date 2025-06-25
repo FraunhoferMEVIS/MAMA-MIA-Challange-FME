@@ -300,6 +300,7 @@ class Model:
         os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
         
         for patient_id in patient_ids:
+            print(f'Classifying patient {patient_id}...')
             image_paths = self.dataset.get_dce_mri_path_list(patient_id)
 
             images = []
@@ -338,7 +339,7 @@ class Model:
                 input_image = input_image.unsqueeze(0)
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
                 results = []
-                for index, weigths_path in enumerate(os.listdir(self.classification_model_folder)):
+                for weigths_path in os.listdir(self.classification_model_folder):
                     weights_path_global = os.path.join(self.classification_model_folder, weigths_path)
                     weights = torch.load(weights_path_global, weights_only=True)
                     model = torchvision.models.video.swin3d_t()
@@ -352,7 +353,7 @@ class Model:
                         logits = model(flipped_image)
                         result = torch.nn.functional.softmax(logits)
                         results.append(result.cpu().detach().numpy())
-                results_array = np.array(results)
+                results_array = np.concatenate(results, axis=0)
                 print(results_array)
                 mean_result = results_array.mean(axis=0)
                 probability = mean_result[1]
@@ -364,9 +365,8 @@ class Model:
                 "pcr": pcr_prediction,
                 "score": probability
             })
-            prediction_df = pd.DataFrame(predictions)
-            prediction_df.to_csv(os.path.join(output_dir, 'predictions.csv'))
-
+        prediction_df = pd.DataFrame(predictions)
+        prediction_df.to_csv(os.path.join(output_dir, 'predictions.csv'))
         return prediction_df
 
     def _get_largest_component_crop(self, mask: np.ndarray) -> tuple[tuple, np.ndarray]:
