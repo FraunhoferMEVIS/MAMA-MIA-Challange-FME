@@ -354,7 +354,6 @@ class Model:
                         result = torch.nn.functional.softmax(logits)
                         results.append(result.cpu().detach().numpy())
                 results_array = np.concatenate(results, axis=0)
-                print(results_array)
                 mean_result = results_array.mean(axis=0)
                 probability = mean_result[1]
                 pcr_prediction = int(probability > 0.5)
