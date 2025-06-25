@@ -328,7 +328,7 @@ class Model:
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
                 input_image = torch.from_numpy(cropped_image)
-                input_image.to(torch.device('cuda'))
+                input_image = input_image.to(torch.device('cuda'))
                 input_image = input_image.unsqueeze(0)
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
                 results = np.zeros((5, 2))
