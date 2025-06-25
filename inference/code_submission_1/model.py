@@ -331,7 +331,6 @@ class Model:
                 input_image.to(torch.device('cuda'))
                 input_image = input_image.unsqueeze(0)
                 input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
-                input_image = input_image.squeeze(0)
                 results = np.zeros((5, 2))
                 for index, weigths_path in enumerate(os.listdir(self.classification_model_folder)):
                     weights_path_global = os.path.join(self.classification_model_folder, weigths_path)
