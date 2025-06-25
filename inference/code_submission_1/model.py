@@ -306,7 +306,7 @@ class Model:
                 nii_image = nib.load(image_path)
                 image_data = nii_image.get_fdata().astype(np.int16)
                 image_data = image_data.transpose((2,1,0))
-                image_data = image_data.expand_dims(axis=0)
+                image_data = np.expand_dims(image_data, axis=0)
                 print(image_data.shape)
                 images.append(image_data)
             image_array = np.concatenate(images, axis=0)
