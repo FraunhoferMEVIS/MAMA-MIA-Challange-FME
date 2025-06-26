@@ -7,19 +7,21 @@ from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune import Tuner, RunConfig
 from classification_training.train import train_model
 
+def transform_value(value, lower, upper):
+    return (value / 10) * (upper - lower) + lower
 
 def run_fold(sampled_config, fold_idx):
     with open(os.environ["BASE_CONFIG"], 'r') as f:
         config = json.load(f)
 
     config.update({
-        "learning_rate": 10 ** sampled_config["log_learning_rate"],
-        "weight_decay": 10 ** sampled_config["log_weight_decay"],
-        "batch_size": int(sampled_config["batch_size"]),
-        "label_smoothing": sampled_config["label_smoothing"],
-        "target_size": (int(sampled_config["z_resolution"]),
-                        int(sampled_config["x_y_resolution"]),
-                        int(sampled_config["x_y_resolution"])),
+        "learning_rate": 10 ** transform_value(sampled_config["log_learning_rate"], -6, -3),
+        "weight_decay": 10 ** transform_value(sampled_config["log_weight_decay"], -5, -2),
+        "batch_size": int(transform_value(sampled_config["batch_size"], 16, 48)),
+        "label_smoothing": transform_value(sampled_config["label_smoothing"], 0, 0.1),
+        "target_size": (int(transform_value(sampled_config["z_resolution"], 16, 50)),
+                        int(transform_value(sampled_config["x_y_resolution"], 50, 150)),
+                        int(transform_value(sampled_config["x_y_resolution"], 50, 150))),
         "data_split_file": f"fold_{fold_idx}.json",
     })
 
@@ -43,12 +45,12 @@ def train_func(config):
         tune.report({"mean_5_fold_ranking_score": 0})
 
 search_space = {
-    "log_learning_rate": tune.uniform(-6, -3),
-    "log_weight_decay": tune.uniform(-5, -2),
-    "batch_size": tune.uniform(16, 48),
-    "label_smoothing": tune.uniform(0.0, 0.1),
-    "x_y_resolution": tune.uniform(50, 150),
-    "z_resolution": tune.uniform(16, 50)
+    "log_learning_rate": tune.uniform(0, 10),
+    "log_weight_decay": tune.uniform(0, 10),
+    "batch_size": tune.uniform(0, 10),
+    "label_smoothing": tune.uniform(0, 10),
+    "x_y_resolution": tune.uniform(0, 10),
+    "z_resolution": tune.uniform(0, 10)
 }
 
 if __name__ == "__main__":
