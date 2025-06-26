@@ -353,7 +353,7 @@ class Model:
                     for dimensions in flipping_dimensions:
                         flipped_image = torch.flip(input_image, dims=dimensions)
                         logits = model(flipped_image)
-                        result = torch.nn.functional.softmax(logits)
+                        result = torch.nn.functional.softmax(logits, dim=1)
                         results.append(result.cpu().detach().numpy())
                 results_array = np.concatenate(results, axis=0)
                 mean_result = results_array.mean(axis=0)
