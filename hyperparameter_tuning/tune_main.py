@@ -30,7 +30,7 @@ def run_fold(sampled_config, fold_idx):
 
 def train_func(config):
     fold_scores = []
-    for fold in range(5):
+    for fold in range(1, 6):
         score = run_fold(config, fold)
         fold_scores.append(score)
     avg_score = np.mean(fold_scores)
