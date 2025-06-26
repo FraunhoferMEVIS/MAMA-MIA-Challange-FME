@@ -21,7 +21,7 @@ def run_fold(sampled_config, fold_idx):
         "data_split_file": f"fold_{fold_idx}.json",
     })
 
-    output_dir = os.path.join(sampled_config["output_root"], f"trial_{train.get_trial_id()}_fold_{fold_idx}")
+    output_dir = os.path.join(sampled_config["output_root"], f"trial_{tune.TuneContext.get_trial_id()}_fold_{fold_idx}")
     os.makedirs(output_dir, exist_ok=True)
     best_ranking_score = train_model(config, output_dir)
     return best_ranking_score
