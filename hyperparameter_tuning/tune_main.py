@@ -56,7 +56,7 @@ if __name__ == "__main__":
         tune_config=tune.TuneConfig(
             num_samples=50,
             search_alg=bayesopt,
-            max_concurrent_trials=1
+            max_concurrent_trials=2
         ),
         run_config=RunConfig(
             name=os.environ["TUNING_RUN_NAME"],
