@@ -50,18 +50,30 @@ search_space = {
 if __name__ == "__main__":
     bayesopt = BayesOptSearch(metric="mean_5_fold_ranking_score", mode="max")
     trainable_with_resources = tune.with_resources(train_func, {"cpu": 4, "gpu": 1})
-    tuner = Tuner(
-        trainable=trainable_with_resources,
-        param_space=search_space,
-        tune_config=tune.TuneConfig(
-            num_samples=50,
-            search_alg=bayesopt,
-            max_concurrent_trials=int(os.environ.get("MAX_CONCURRENT_TRIALS", 2))
-        ),
-        run_config=RunConfig(
-            name=os.environ["TUNING_RUN_NAME"],
-            storage_path=os.environ["TUNE_RESULTS"],
-            verbose=1
-        ),
-    )
+    
+    name = os.environ["TUNING_RUN_NAME"]
+    storage_path = os.environ["TUNE_RESULTS"]
+    exp_dir = os.path.join(storage_path, name)
+    if Tuner.can_restore(exp_dir):
+        tuner = Tuner.restore(
+            exp_dir,
+            trainable=trainable_with_resources,
+            resume_errored=True,
+            param_space=search_space,
+        )
+    else:
+        tuner = Tuner(
+            trainable=trainable_with_resources,
+            param_space=search_space,
+            tune_config=tune.TuneConfig(
+                num_samples=50,
+                search_alg=bayesopt,
+                max_concurrent_trials=int(os.environ.get("MAX_CONCURRENT_TRIALS", 2))
+            ),
+            run_config=RunConfig(
+                name=name,
+                storage_path=storage_path,
+                verbose=1
+            ),
+        )
     tuner.fit()
