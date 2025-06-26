@@ -14,11 +14,13 @@ class NiftiImageDataset(Dataset):
                  data_split_file: str,
                  group: str,
                  target_size: tuple[int],
-                 transforms: list = []):
+                 transforms: list = [],
+                 normalization: str | None = None):
         self.image_dir = os.path.join(data_dir, 'images')
         self.label_dir = os.path.join(data_dir, 'labels')
         self.target_size = target_size  # Fixed voxel size (x, y, z)
         self.transforms = transforms
+        self.normalization = normalization
         data_split_file_path = os.path.join(data_dir, data_split_file)
         with open(data_split_file_path, 'r') as file:
             data_split = json.load(file)
@@ -42,6 +44,12 @@ class NiftiImageDataset(Dataset):
             image = image.unsqueeze(0)
             image = interpolate(image, self.target_size, mode='trilinear')  # Bilinear interpolation
             image = image.squeeze(0)
+
+        if self.normalization == "zScoreFirstChannelBased":
+            mean = image[0].mean()
+            std = image[0].std()
+            image = (image - mean) / std
+
 
         with open(label_path, 'r') as file:
             label_dict = json.load(file)
