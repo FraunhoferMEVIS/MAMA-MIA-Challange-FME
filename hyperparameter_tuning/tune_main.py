@@ -13,8 +13,8 @@ def run_fold(sampled_config, fold_idx):
         config = json.load(f)
 
     config.update({
-        "learning_rate": sampled_config["learning_rate"],
-        "weight_decay": sampled_config["weight_decay"],
+        "learning_rate": 10 ** sampled_config["exp_learning_rate"],
+        "weight_decay": 10 ** sampled_config["log_weight_decay"],
         "batch_size": int(sampled_config["batch_size"]),
         "label_smoothing": sampled_config["label_smoothing"],
         "target_size": (int(sampled_config["z_resolution"]),
@@ -37,8 +37,8 @@ def train_func(config):
     train.report({"mean_5_fold_ranking_score": avg_score})
 
 search_space = {
-    "learning_rate": tune.loguniform(1e-6, 1e-3),
-    "weight_decay": tune.loguniform(1e-5, 1e-2),
+    "log_learning_rate": tune.uniform(-6, -3),
+    "log_weight_decay": tune.uniform(-5, -2),
     "batch_size": tune.uniform(16, 48),
     "label_smoothing": tune.uniform(0.0, 0.1),
     "x_y_resolution": tune.uniform(50, 150),
