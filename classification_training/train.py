@@ -2,9 +2,7 @@ import os
 import json
 import argparse
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchvision.models.video import swin3d_t, Swin3D_T_Weights
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.nn import CrossEntropyLoss
@@ -15,6 +13,8 @@ from sklearn.metrics import balanced_accuracy_score, confusion_matrix, precision
 
 from dataloader import NiftiImageDataset
 from augmentations import random_mirroring, batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
+import models
+
 
 def parse_config(config_path):
     with open(config_path, 'r') as f:
@@ -278,9 +278,7 @@ def train_model(config, output_dir):
                             num_workers=6)
 
     # Model
-    weights = Swin3D_T_Weights.KINETICS400_V1
-    model = swin3d_t(weights=weights)
-    model.head = nn.Linear(model.head.in_features, 2)  # 2 labels
+    model = models.get_model("swin3d_t", pretrained=True)
     model = model.to(device)
 
     # Loss, optimizer, scheduler
