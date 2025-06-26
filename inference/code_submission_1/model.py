@@ -299,7 +299,8 @@ class Model:
         """
         patient_ids = self.dataset.get_patient_id_list()
         predictions = []
-        os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
+        if os.environ['DEBUG_MAMA_MIA'] == "True":
+            os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
         
         for patient_id in patient_ids:
             print(f'Classifying patient {patient_id}...')
@@ -330,11 +331,11 @@ class Model:
                 pcr_prediction = 0
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
-                # Save cropped image for debugging
-                cropped_image_transposed = cropped_image.transpose((3,2,1,0))
-                cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
-                cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
-                nib.save(cropped_nii, cropped_nii_path)
+                if os.environ['DEBUG_MAMA_MIA'] == "True":
+                    cropped_image_transposed = cropped_image.transpose((3,2,1,0))
+                    cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
+                    cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
+                    nib.save(cropped_nii, cropped_nii_path)
 
                 input_image = torch.from_numpy(cropped_image)
                 input_image = input_image.to(torch.device('cuda'))
