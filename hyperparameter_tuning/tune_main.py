@@ -17,7 +17,9 @@ def run_fold(sampled_config, fold_idx):
         "weight_decay": sampled_config["weight_decay"],
         "batch_size": int(sampled_config["batch_size"]),
         "label_smoothing": sampled_config["label_smoothing"],
-        "target_size": (sampled_config["z_resolution"], sampled_config["x_y_resolution"], sampled_config["x_y_resolution"]),
+        "target_size": (int(sampled_config["z_resolution"]),
+                        int(sampled_config["x_y_resolution"]),
+                        int(sampled_config["x_y_resolution"])),
         "data_split_file": f"fold_{fold_idx}.json",
     })
 
@@ -37,10 +39,10 @@ def train_func(config):
 search_space = {
     "learning_rate": tune.loguniform(1e-6, 1e-3),
     "weight_decay": tune.loguniform(1e-5, 1e-2),
-    "batch_size": tune.quniform(16, 48, 1),
+    "batch_size": tune.uniform(16, 48, 1),
     "label_smoothing": tune.uniform(0.0, 0.1),
-    "x_y_resolution": tune.quniform(50, 150, 1),
-    "z_resolution": tune.quniform(16, 50, 1),
+    "x_y_resolution": tune.uniform(50, 150, 1),
+    "z_resolution": tune.uniform(16, 50, 1),
     "base_config_path": os.environ["BASE_CONFIG"],
     "output_root": os.environ["TUNE_OUTPUTS"]
 }
