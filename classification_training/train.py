@@ -270,12 +270,12 @@ def train_model(config: dict, output_dir: str) -> float:
                               batch_size=config['batch_size'],
                               shuffle=True,
                               pin_memory=True,
-                              num_workers=6)
+                              num_workers=config['num_workers'])
     val_loader = DataLoader(val_dataset,
                             batch_size=config['batch_size'],
                             shuffle=False,
                             pin_memory=True,
-                            num_workers=6)
+                            num_workers=config['num_workers'])
 
     # Model
     model_key = config['model_key']

@@ -10,5 +10,6 @@
   "epochs": 50,
   "label_smoothing": 0.001,
   "class_weights": [0.6, 1.4],
-  "fairness_variables": ["age", "menopausal_status"]
+  "fairness_variables": ["age", "menopausal_status"],
+  "num_workers": 4
 }

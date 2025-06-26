@@ -49,7 +49,6 @@ search_space = {
 
 if __name__ == "__main__":
     bayesopt = BayesOptSearch(metric="mean_5_fold_ranking_score", mode="max")
-    bayesopt = ConcurrencyLimiter(bayesopt, max_concurrent=4)
 
     tuner = Tuner(
         trainable=train_func,
@@ -57,6 +56,7 @@ if __name__ == "__main__":
         tune_config=tune.TuneConfig(
             num_samples=50,
             search_alg=bayesopt,
+            max_concurrent=2
         ),
         run_config=RunConfig(
             name="swin3d_t_hyperparam_tuning",
