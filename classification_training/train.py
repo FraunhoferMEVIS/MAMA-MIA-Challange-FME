@@ -16,7 +16,7 @@ from augmentations import random_mirroring, batch_generators_intensity_augmentat
 import models
 
 
-def parse_config(config_path):
+def parse_config(config_path: str) -> dict:
     with open(config_path, 'r') as f:
         return json.load(f)
 
@@ -239,7 +239,7 @@ def validate(model, dataloader, device, criterion, selected_fairness_variables=N
         print(f"Validation Loss: {validation_loss:.4f}")
         return validation_loss, validation_loss, None
 
-def train_model(config, output_dir):
+def train_model(config: dict, output_dir: str) -> float:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     use_amp = True if torch.cuda.is_available() else False
 
@@ -278,7 +278,9 @@ def train_model(config, output_dir):
                             num_workers=6)
 
     # Model
-    model = models.get_model("swin3d_t", pretrained=True)
+    model_key = config['model_key']
+    pretrained = config['pretrained']
+    model = models.get_model(model_key, pretrained=pretrained)
     model = model.to(device)
 
     # Loss, optimizer, scheduler
@@ -288,7 +290,6 @@ def train_model(config, output_dir):
     scheduler = CosineAnnealingLR(optimizer, T_max=config['epochs'])
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
-    best_val_loss = float('inf')
     best_ranking_score = 0.0
 
     os.makedirs(output_dir, exist_ok=True)
@@ -326,19 +327,15 @@ def train_model(config, output_dir):
 
         print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
 
-        # Save best model based on ranking score if available, otherwise validation loss
-        if fairness_metrics is not None:
-            if ranking_score > best_ranking_score:
-                best_ranking_score = ranking_score
-                torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
-                print(f"New best ranking score: {best_ranking_score:.4f}")
-        else:
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
+        if ranking_score > best_ranking_score:
+            best_ranking_score = ranking_score
+            torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
+            print(f"New best ranking score: {best_ranking_score:.4f}")
 
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
+
+    return best_ranking_score
 
 def main():
     parser = argparse.ArgumentParser(description="Train Swin3D on NIfTI dataset")

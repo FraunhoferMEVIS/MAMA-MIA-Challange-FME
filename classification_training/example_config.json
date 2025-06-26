@@ -1,0 +1,14 @@
+{
+  "model_key": "swin3d_t",
+  "pretrained": true,
+  "data_path": "/mama_mia/deep_learning/classification_data_version_2",
+  "data_split_file": "fold_1.json",
+  "target_size": [24, 75, 75],
+  "batch_size": 40,
+  "learning_rate": 1e-5,
+  "weight_decay": 1e-3,
+  "epochs": 50,
+  "label_smoothing": 0.001,
+  "class_weights": [0.6, 1.4],
+  "fairness_variables": ["age", "menopausal_status"]
+}
