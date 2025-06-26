@@ -169,7 +169,8 @@ class Model:
         # MANDATOR
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
-        self.classification_model_folder = "/app/ingested_program/code_submission_1/classification_models"
+        self.nnunet_model_folder = '/app/ingested_program/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetResEncUNetLPlans24GB__3d_fullres'
+        self.classification_model_folder = "/app/ingested_program/classification_models"
         
 
     def predict_segmentation(self, output_dir):
@@ -204,8 +205,9 @@ class Model:
         )
         # === Load your trained model from a specific fold ===
         predictor.initialize_from_trained_model_folder(
-            '/app/ingested_program/code_submission_1/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetResEncUNetLPlans24GB__3d_fullres',
-            use_folds=(0,1,2,3,4), checkpoint_name='checkpoint_best.pth')
+            self.nnunet_model_folder,
+            use_folds=(0,1,2,3,4),
+            checkpoint_name='checkpoint_best.pth')
         
         # === Build nnUNet-compatible input images folder ===
         nnunet_input_images = os.path.join(output_dir, 'nnunet_input_images')

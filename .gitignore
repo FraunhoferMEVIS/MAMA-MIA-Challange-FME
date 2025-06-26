@@ -1,2 +1,4 @@
 inference/*/Dataset*
+inference/*/classification_models
+*.zip
 __pycache__
