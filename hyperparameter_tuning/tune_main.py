@@ -49,14 +49,14 @@ search_space = {
 
 if __name__ == "__main__":
     bayesopt = BayesOptSearch(metric="mean_5_fold_ranking_score", mode="max")
-
+    trainable_with_resources = tune.with_resources(train_func, {"cpu": 4, "gpu": 1})
     tuner = Tuner(
-        trainable=train_func,
+        trainable=trainable_with_resources,
         param_space=search_space,
         tune_config=tune.TuneConfig(
             num_samples=50,
             search_alg=bayesopt,
-            max_concurrent_trials=2
+            max_concurrent_trials=1
         ),
         run_config=RunConfig(
             name="swin3d_t_hyperparam_tuning",
