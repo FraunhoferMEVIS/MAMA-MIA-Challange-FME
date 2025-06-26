@@ -58,7 +58,7 @@ if __name__ == "__main__":
         ),
         run_config=RunConfig(
             name="swin3d_t_hyperparam_tuning",
-            local_dir=os.environ["RAY_RESULTS"],
+            storage_path=os.environ["RAY_RESULTS"],
             verbose=1
         ),
     )
