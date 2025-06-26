@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import torch
 from ray import tune
 from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune import Tuner, RunConfig
@@ -30,12 +31,16 @@ def run_fold(sampled_config, fold_idx):
     return best_ranking_score
 
 def train_func(config):
-    fold_scores = []
-    for fold in range(1, 6):
-        score = run_fold(config, fold)
-        fold_scores.append(score)
-    avg_score = np.mean(fold_scores)
-    tune.report({"mean_5_fold_ranking_score": avg_score})
+    try:
+        fold_scores = []
+        for fold in range(1, 6):
+            score = run_fold(config, fold)
+            fold_scores.append(score)
+        avg_score = np.mean(fold_scores)
+        tune.report({"mean_5_fold_ranking_score": avg_score})
+    except torch.OutOfMemoryError:
+        # Try to avoid OOM configurations by reporting a small metric value
+        tune.report({"mean_5_fold_ranking_score": 0})
 
 search_space = {
     "log_learning_rate": tune.uniform(-6, -3),
