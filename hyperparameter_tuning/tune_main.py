@@ -1,10 +1,9 @@
 import os
 import json
 import numpy as np
-from ray import tune, train
+from ray import tune
 from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune import Tuner, RunConfig
-from ray.tune.search import ConcurrencyLimiter
 from classification_training.train import train_model
 
 
@@ -36,7 +35,7 @@ def train_func(config):
         score = run_fold(config, fold)
         fold_scores.append(score)
     avg_score = np.mean(fold_scores)
-    train.report({"mean_5_fold_ranking_score": avg_score})
+    tune.report({"mean_5_fold_ranking_score": avg_score})
 
 search_space = {
     "log_learning_rate": tune.uniform(-6, -3),
@@ -48,9 +47,7 @@ search_space = {
 }
 
 if __name__ == "__main__":
-    bayesopt = BayesOptSearch(metric="mean_5_fold_ranking_score", mode="max")
     trainable_with_resources = tune.with_resources(train_func, {"cpu": 4, "gpu": 1})
-    
     name = os.environ["TUNING_RUN_NAME"]
     storage_path = os.environ["TUNE_RESULTS"]
     exp_dir = os.path.join(storage_path, name)
@@ -62,6 +59,9 @@ if __name__ == "__main__":
             param_space=search_space,
         )
     else:
+        bayesopt = BayesOptSearch(metric="mean_5_fold_ranking_score",
+                                  mode="max",
+                                  verbose=1)
         tuner = Tuner(
             trainable=trainable_with_resources,
             param_space=search_space,
