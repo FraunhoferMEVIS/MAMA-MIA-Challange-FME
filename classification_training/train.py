@@ -291,6 +291,7 @@ def train_model(config: dict, output_dir: str) -> float:
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     best_ranking_score = 0.0
+    ranking_scores = []
 
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, 'loss_log.csv')
@@ -330,6 +331,7 @@ def train_model(config: dict, output_dir: str) -> float:
 
         print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
 
+        ranking_scores.append(ranking_score)
         if ranking_score > best_ranking_score:
             best_ranking_score = ranking_score
             torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
@@ -338,7 +340,10 @@ def train_model(config: dict, output_dir: str) -> float:
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
 
-    return best_ranking_score
+    ranking_scores.sort(reverse=True)
+    top_4_ranking_scores = ranking_scores[:4]
+    top_4_ranking_average = np.mean(top_4_ranking_scores)
+    return top_4_ranking_average
 
 def main():
     parser = argparse.ArgumentParser(description="Train Swin3D on NIfTI dataset")
