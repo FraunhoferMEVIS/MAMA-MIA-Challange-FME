@@ -11,9 +11,9 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, precision_score, recall_score
 
-from dataloader import NiftiImageDataset
-from augmentations import random_mirroring, batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
-import models
+from classification_training.dataloader import NiftiImageDataset
+from classification_training.augmentations import random_mirroring, batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
+import classification_training.models as models
 
 
 def parse_config(config_path: str) -> dict:
