@@ -328,7 +328,7 @@ def train_model(config: dict, output_dir: str) -> float:
         with open(log_path, 'a') as f:
             f.write(f"{epoch},{train_loss:.4f},{val_loss:.4f}\n")
 
-        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f}")
 
         ranking_scores.append(ranking_score)
         if ranking_score > best_ranking_score:
