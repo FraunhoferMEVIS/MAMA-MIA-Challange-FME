@@ -50,7 +50,7 @@ if __name__ == "__main__":
     bayesopt = ConcurrencyLimiter(bayesopt, max_concurrent=4)
 
     tuner = Tuner(
-        train_func=train_func,
+        trainable=train_func,
         param_space=search_space,
         tune_config=tune.TuneConfig(
             num_samples=50,
