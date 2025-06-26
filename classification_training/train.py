@@ -330,11 +330,14 @@ def train_model(config: dict, output_dir: str) -> float:
 
         print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f}")
 
-        ranking_scores.append(ranking_score)
-        if ranking_score > best_ranking_score:
-            best_ranking_score = ranking_score
-            torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
-            print(f"New best ranking score: {best_ranking_score:.4f}")
+        balanced_accuracy = fairness_metrics['balanced_accuracy']
+        # Only do best model updates if the balanced accuracy is > 0.5
+        if balanced_accuracy > 0.5:
+            ranking_scores.append(ranking_score)
+            if ranking_score > best_ranking_score:
+                best_ranking_score = ranking_score
+                torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
+                print(f"New best ranking score: {best_ranking_score:.4f}")
 
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
