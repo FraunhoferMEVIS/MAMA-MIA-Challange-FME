@@ -39,10 +39,10 @@ def train_func(config):
 search_space = {
     "learning_rate": tune.loguniform(1e-6, 1e-3),
     "weight_decay": tune.loguniform(1e-5, 1e-2),
-    "batch_size": tune.uniform(16, 48, 1),
+    "batch_size": tune.uniform(16, 48),
     "label_smoothing": tune.uniform(0.0, 0.1),
-    "x_y_resolution": tune.uniform(50, 150, 1),
-    "z_resolution": tune.uniform(16, 50, 1),
+    "x_y_resolution": tune.uniform(50, 150),
+    "z_resolution": tune.uniform(16, 50),
     "base_config_path": os.environ["BASE_CONFIG"],
     "output_root": os.environ["TUNE_OUTPUTS"]
 }
