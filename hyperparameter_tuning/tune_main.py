@@ -56,7 +56,7 @@ if __name__ == "__main__":
         tune_config=tune.TuneConfig(
             num_samples=50,
             search_alg=bayesopt,
-            max_concurrent=2
+            max_concurrent_trails=2
         ),
         run_config=RunConfig(
             name="swin3d_t_hyperparam_tuning",
