@@ -9,7 +9,7 @@ from classification_training.train import train_model
 
 
 def run_fold(sampled_config, fold_idx):
-    with open(sampled_config["base_config_path"], 'r') as f:
+    with open(os.environ["BASE_CONFIG"], 'r') as f:
         config = json.load(f)
 
     config.update({
@@ -23,7 +23,9 @@ def run_fold(sampled_config, fold_idx):
         "data_split_file": f"fold_{fold_idx}.json",
     })
 
-    output_dir = os.path.join(sampled_config["output_root"], f"trial_{tune.get_context().get_trial_id()}_fold_{fold_idx}")
+    output_dir = os.path.join(os.environ["TUNE_TRIALS"],
+                              tune.get_context().get_experiment_name(),
+                              f"trial_{tune.get_context().get_trial_id()}_fold_{fold_idx}")
     os.makedirs(output_dir, exist_ok=True)
     best_ranking_score = train_model(config, output_dir)
     return best_ranking_score
@@ -42,9 +44,7 @@ search_space = {
     "batch_size": tune.uniform(16, 48),
     "label_smoothing": tune.uniform(0.0, 0.1),
     "x_y_resolution": tune.uniform(50, 150),
-    "z_resolution": tune.uniform(16, 50),
-    "base_config_path": os.environ["BASE_CONFIG"],
-    "output_root": os.environ["TUNE_OUTPUTS"]
+    "z_resolution": tune.uniform(16, 50)
 }
 
 if __name__ == "__main__":
@@ -59,8 +59,8 @@ if __name__ == "__main__":
             max_concurrent_trials=1
         ),
         run_config=RunConfig(
-            name="swin3d_t_hyperparam_tuning",
-            storage_path=os.environ["RAY_RESULTS"],
+            name=os.environ["TUNING_RUN_NAME"],
+            storage_path=os.environ["TUNE_RESULTS"],
             verbose=1
         ),
     )
