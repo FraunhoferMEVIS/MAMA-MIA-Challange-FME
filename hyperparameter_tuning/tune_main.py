@@ -13,7 +13,7 @@ def run_fold(sampled_config, fold_idx):
         config = json.load(f)
 
     config.update({
-        "learning_rate": 10 ** sampled_config["exp_learning_rate"],
+        "learning_rate": 10 ** sampled_config["log_learning_rate"],
         "weight_decay": 10 ** sampled_config["log_weight_decay"],
         "batch_size": int(sampled_config["batch_size"]),
         "label_smoothing": sampled_config["label_smoothing"],
