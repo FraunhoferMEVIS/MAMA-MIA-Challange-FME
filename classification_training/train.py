@@ -296,6 +296,9 @@ def train_model(config: dict, output_dir: str) -> float:
     log_path = os.path.join(output_dir, 'loss_log.csv')
     with open(log_path, 'w') as f:
         f.write("epoch,train_loss,val_loss\n")
+    log_config_path = os.path.join(output_dir, 'config.json')
+    with open(log_config_path, 'w') as file:
+        json.dump(config, file)
 
     for epoch in range(1, config['epochs']+1):
         model.train()
