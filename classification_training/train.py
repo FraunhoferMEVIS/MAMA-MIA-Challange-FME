@@ -131,7 +131,7 @@ def compute_fairness_metrics(predictions, labels, metadata_dict_list, selected_f
     }
 
 def validate(model, dataloader, device, criterion, selected_fairness_variables=None, 
-             alpha=0.5, epoch=None, log_path=None):
+             alpha=0.5, epoch=None, log_path=None, verbose: bool = False):
     """
     Extended validation function that computes challenge metrics.
     
@@ -199,18 +199,16 @@ def validate(model, dataloader, device, criterion, selected_fairness_variables=N
         
         ranking_score = (1 - alpha) * balanced_accuracy + alpha * fairness_score
         
-        # Print metrics
-        print(f"Validation Loss: {validation_loss:.4f}")
-        print(f"Precision: {precision:.4f}")
-        print(f"Recall: {recall:.4f}")
-        print(f"Balanced Accuracy: {balanced_accuracy:.4f}")
-        print(f"Fairness Score (1-disparity): {fairness_score:.4f}")
-        print(f"Ranking Score: {ranking_score:.4f}")
-        
-        # Print disparity details
-        print("Equalized Odds Disparities by subgroup:")
-        for var, disparity in fairness_metrics['equalized_odds_disparities'].items():
-            print(f"  {var}: {disparity:.4f}")
+        if verbose:
+            print(f"Validation Loss: {validation_loss:.4f}")
+            print(f"Precision: {precision:.4f}")
+            print(f"Recall: {recall:.4f}")
+            print(f"Balanced Accuracy: {balanced_accuracy:.4f}")
+            print(f"Fairness Score (1-disparity): {fairness_score:.4f}")
+            print(f"Ranking Score: {ranking_score:.4f}")
+            print("Equalized Odds Disparities by subgroup:")
+            for var, disparity in fairness_metrics['equalized_odds_disparities'].items():
+                print(f"  {var}: {disparity:.4f}")
         
         # Log detailed metrics if log path is provided
         if log_path is not None and epoch is not None:
@@ -320,7 +318,8 @@ def train_model(config: dict, output_dir: str) -> float:
         # Extended validation with challenge metrics
         val_loss, ranking_score, fairness_metrics = validate(
             model, val_loader, device, criterion, 
-            selected_fairness_variables, epoch=epoch, log_path=log_path
+            selected_fairness_variables, epoch=epoch, log_path=log_path,
+            verbose=False
         )
         
         scheduler.step()
