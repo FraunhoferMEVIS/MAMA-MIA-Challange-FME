@@ -51,8 +51,8 @@ search_space = {
     "weight_decay": tune.loguniform(1e-5, 1e-2),
     "batch_size": tune.quniform(16, 50, 1),
     "label_smoothing": tune.uniform(0, 0.1),
-    "x_y_resolution": tune.quniform(50, 150),
-    "z_resolution": tune.quniform(16, 50),
+    "x_y_resolution": tune.quniform(50, 150, 1),
+    "z_resolution": tune.quniform(16, 50, 1),
     "normalization": tune.choice(["none", "zScoreFirstChannelBased"]),
     "model_key": tune.choice(["swin3d_t", "mc3_18", "mvit_v2_s", "r2plus1d_18", "s3d"])
 }
