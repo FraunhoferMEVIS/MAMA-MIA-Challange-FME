@@ -341,10 +341,13 @@ def train_model(config: dict, output_dir: str) -> float:
 
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
-
-    ranking_scores.sort(reverse=True)
-    top_4_ranking_scores = ranking_scores[:4]
-    top_4_ranking_average = np.mean(top_4_ranking_scores)
+    
+    if len(ranking_scores) > 0:
+        ranking_scores.sort(reverse=True)
+        top_4_ranking_scores = ranking_scores[:4]
+        top_4_ranking_average = np.mean(top_4_ranking_scores)
+    else:
+        top_4_ranking_average = 0.5
     return top_4_ranking_average
 
 def main():
