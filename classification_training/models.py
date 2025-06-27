@@ -23,7 +23,7 @@ def get_mc3_18(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = video.mc3_18(weights=weights)
-    model.head = torch.nn.Linear(model.head.in_features, 2)
+    model.fc = torch.nn.Linear(model.fc.in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
         model.load_state_dict(weights)
@@ -35,7 +35,7 @@ def get_mvit_v2_s(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = video.mvit_v2_s(weights=weights)
-    model.head = torch.nn.Linear(model.head.in_features, 2)
+    model.head[1] = torch.nn.Linear(model.head[1].in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
         model.load_state_dict(weights)
@@ -47,7 +47,7 @@ def get_r2plus1d_18(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = video.r2plus1d_18(weights=weights)
-    model.head = torch.nn.Linear(model.head.in_features, 2)
+    model.fc = torch.nn.Linear(model.fc.in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
         model.load_state_dict(weights)
@@ -59,7 +59,7 @@ def get_s3d(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = video.s3d(weights=weights)
-    model.head = torch.nn.Linear(model.head.in_features, 2)
+    model.classifier[1] = torch.nn.Conv3d(1024, 2, kernel_size=1, stride=1, bias=True)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
         model.load_state_dict(weights)
