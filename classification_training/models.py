@@ -12,6 +12,8 @@ def get_model(model_key: str, pretrained: bool = False, weights_path: str = None
             return get_mvit_v2_s(pretrained, weights_path)
         case "r2plus1d_18":
             return get_r2plus1d_18(pretrained, weights_path)
+        case "r3d_18":
+            return get_r3d_18(pretrained, weights_path)
         case "s3d":
             return get_s3d(pretrained, weights_path)
         case _:
@@ -47,6 +49,18 @@ def get_r2plus1d_18(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = video.r2plus1d_18(weights=weights)
+    model.fc = torch.nn.Linear(model.fc.in_features, 2)
+    if weights_path:
+        weights = torch.load(weights_path, weights_only=True)
+        model.load_state_dict(weights)
+    return model
+
+def get_r3d_18(pretrained: bool, weights_path: str):
+    if pretrained:
+        weights = video.R3D_18_Weights.KINETICS400_V1
+    else:
+        weights = None
+    model = video.r3d_18(weights=weights)
     model.fc = torch.nn.Linear(model.fc.in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)

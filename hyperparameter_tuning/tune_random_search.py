@@ -54,7 +54,7 @@ search_space = {
     "x_y_resolution": tune.quniform(50, 150, 1),
     "z_resolution": tune.quniform(16, 50, 1),
     "normalization": tune.choice(["none", "zScoreFirstChannelBased"]),
-    "model_key": tune.choice(["swin3d_t", "mc3_18", "mvit_v2_s", "r2plus1d_18", "s3d"])
+    "model_key": tune.choice(["swin3d_t", "mc3_18", "r2plus1d_18", "r3d_18", "s3d"])
 }
 
 if __name__ == "__main__":
