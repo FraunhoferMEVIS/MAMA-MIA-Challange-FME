@@ -17,7 +17,7 @@ def run_fold(sampled_config, fold_idx):
     config.update({
         "learning_rate": sampled_config["learning_rate"],
         "weight_decay": sampled_config["weight_decay"],
-        "batch_size": int(sampled_config["batch_size"], 16, 48),
+        "batch_size": int(sampled_config["batch_size"]),
         "label_smoothing": sampled_config["label_smoothing"],
         "target_size": (int(sampled_config["z_resolution"]),
                         int(sampled_config["x_y_resolution"]),
