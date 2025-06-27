@@ -254,14 +254,16 @@ def train_model(config: dict, output_dir: str) -> float:
         data_split_file=config['data_split_file'],
         group='training',
         target_size=config['target_size'],
-        transforms=data_augmentation_transforms
+        transforms=data_augmentation_transforms,
+        normalization=config['normalization']
     )
 
     val_dataset = NiftiImageDataset(
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='validation',
-        target_size=config['target_size']
+        target_size=config['target_size'],
+        normalization=config['normalization']
     )
 
     train_loader = DataLoader(train_dataset,
@@ -341,7 +343,7 @@ def train_model(config: dict, output_dir: str) -> float:
 
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
-    
+
     if len(ranking_scores) > 0:
         ranking_scores.sort(reverse=True)
         top_4_ranking_scores = ranking_scores[:4]
