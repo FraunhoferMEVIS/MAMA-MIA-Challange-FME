@@ -42,9 +42,9 @@ def train_func(config):
         tune.report({"mean_5_fold_ranking_score": 0})
 
 search_space = {
-    "learning_rate": tune.loguniform(1e-6, 1e-3),
+    "learning_rate": tune.loguniform(1e-6, 1e-2),
     "weight_decay": tune.loguniform(1e-5, 1e-2),
-    "batch_size": tune.quniform(16, 64, 1),
+    "batch_size": tune.quniform(8, 64, 1),
     "label_smoothing": tune.uniform(0, 0.1),
     "x_y_resolution": tune.quniform(50, 250, 1),
     "normalization": tune.choice(["none", "zScoreFirstChannelBased"]),
