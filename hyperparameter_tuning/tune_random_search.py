@@ -3,12 +3,8 @@ import json
 import numpy as np
 import torch
 from ray import tune
-from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune import Tuner, RunConfig
 from classification_training.train import train_model
-
-def transform_value(value, lower, upper):
-    return (value / 10) * (upper - lower) + lower
 
 def run_fold(sampled_config, fold_idx):
     with open(os.environ["BASE_CONFIG"], 'r') as f:
