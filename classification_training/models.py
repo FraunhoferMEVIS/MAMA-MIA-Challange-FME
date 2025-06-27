@@ -1,5 +1,6 @@
 import torch
 import torchvision.models.video as video
+import torchvision.models as models
 
 
 def get_model(model_key: str, pretrained: bool = False, weights_path: str = None):
@@ -16,6 +17,8 @@ def get_model(model_key: str, pretrained: bool = False, weights_path: str = None
             return get_r3d_18(pretrained, weights_path)
         case "s3d":
             return get_s3d(pretrained, weights_path)
+        case "convnext_tiny":
+            return get_convnext_tiny(pretrained, weights_path)
         case _:
             raise Exception(f"Model {model_key} is no valid model key.")
     
@@ -86,6 +89,19 @@ def get_swin3d_t(pretrained: bool, weights_path: str):
         weights = None
     model = video.swin3d_t(weights=weights)
     model.head = torch.nn.Linear(model.head.in_features, 2)
+    if weights_path:
+        weights = torch.load(weights_path, weights_only=True)
+        model.load_state_dict(weights)
+    return model
+
+
+def get_convnext_tiny(pretrained: bool, weights_path: str):
+    if pretrained:
+        weights = models.ConvNeXt_Tiny_Weights.IMAGENET1K_V1
+    else:
+        weights = None
+    model = models.convnext_tiny(weights=weights)
+    model.classifier[2] = torch.nn.Linear(model.classifier[2].in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
         model.load_state_dict(weights)

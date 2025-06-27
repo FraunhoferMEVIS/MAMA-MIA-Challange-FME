@@ -15,6 +15,21 @@ from batchgeneratorsv2.transforms.spatial.spatial import SpatialTransform
 
 # TODO: Add random zoom transformation
 
+def random_mirroring_2d(image: torch.Tensor,
+                     mirror_axes: list[str]=['y', 'x'],
+                     apply_probability=0.5,
+                     probability_per_axis=0.5) -> torch.Tensor:
+    if random.random() < apply_probability:
+        flip_dims = []
+        for axis in mirror_axes:
+            if axis == 'y' and random.random() < probability_per_axis:
+                flip_dims.append(1)
+            elif axis == 'x' and random.random() < probability_per_axis:
+                flip_dims.append(2)
+        if flip_dims:
+            image = torch.flip(image, dims=flip_dims)
+    return image
+
 def random_mirroring(image: torch.Tensor,
                      mirror_axes: list[str]=['z', 'y', 'x'],
                      apply_probability=0.5,
@@ -33,6 +48,7 @@ def random_mirroring(image: torch.Tensor,
     return image
 
 def batch_generators_spatial_augmentations(image: torch.Tensor) -> torch.Tensor:
+    dimensions = len(image.shape) - 1
     transforms: List[BasicTransform] = [
         RandomTransform(
             SpatialTransform(
@@ -41,7 +57,9 @@ def batch_generators_spatial_augmentations(image: torch.Tensor) -> torch.Tensor:
                 random_crop=False,
                 p_elastic_deform=0,
                 p_rotation=0.25,
-                p_scaling=0.3
+                p_scaling=0.3,
+                # Need to synchronize axis scaling in 2D case because of bug in batchgeneratorsv2
+                p_synchronize_scaling_across_axes=1 if dimensions==2 else 0
             ),
             apply_probability=0.1
         ),

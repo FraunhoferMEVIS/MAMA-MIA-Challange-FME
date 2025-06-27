@@ -9,8 +9,9 @@ from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
 import numpy as np
 
-from classification_training.augmentations import random_mirroring, batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
-from classification_training.dataloader import NiftiImageDataset
+from classification_training.augmentations import random_mirroring, random_mirroring_2d, \
+    batch_generators_intensity_augmentations, batch_generators_spatial_augmentations
+from classification_training.dataloader import NiftiImageDataset, NiftiImageDataset2DCenterSlice
 from classification_training.validate import validate
 import classification_training.models as models
 
@@ -24,15 +25,25 @@ def train_model(config: dict, output_dir: str) -> float:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     use_amp = True if torch.cuda.is_available() else False
 
-    data_augmentation_transforms = [random_mirroring,
-                                    batch_generators_intensity_augmentations,
-                                    batch_generators_spatial_augmentations]
-
     # Fairness evaluation settings
     selected_fairness_variables = config.get('fairness_variables', ['age', 'breast_density', 'menopausal_status'])
     print(f"Fairness variables: {selected_fairness_variables}")
 
-    train_dataset = NiftiImageDataset(
+    spatial_dimensions = config.get('spatial_dimensions', 3)
+
+    if spatial_dimensions == 3:
+        data_augmentation_transforms = [random_mirroring,
+                                        batch_generators_intensity_augmentations,
+                                        batch_generators_spatial_augmentations]
+        DatasetClass = NiftiImageDataset
+    elif spatial_dimensions == 2:
+        data_augmentation_transforms = [random_mirroring_2d,
+                                        batch_generators_intensity_augmentations,
+                                        batch_generators_spatial_augmentations]
+        DatasetClass = NiftiImageDataset2DCenterSlice
+
+
+    train_dataset = DatasetClass(
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='training',
@@ -41,7 +52,7 @@ def train_model(config: dict, output_dir: str) -> float:
         normalization=config['normalization']
     )
 
-    val_dataset = NiftiImageDataset(
+    val_dataset = DatasetClass(
         data_dir=os.path.join(config['data_path']),
         data_split_file=config['data_split_file'],
         group='validation',

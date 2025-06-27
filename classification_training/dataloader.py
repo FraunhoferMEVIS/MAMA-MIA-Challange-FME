@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+import random
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.functional import interpolate
@@ -13,7 +14,7 @@ class NiftiImageDataset(Dataset):
                  data_dir: str,
                  data_split_file: str,
                  group: str,
-                 target_size: tuple[int],
+                 target_size: tuple[int, int, int],
                  transforms: list = [],
                  normalization: str | None = None):
         self.image_dir = os.path.join(data_dir, 'images')
@@ -69,6 +70,88 @@ class NiftiImageDataset(Dataset):
                 image = transform(image)
 
         return image, label, label_dict
+    
+class NiftiImageDataset2DCenterSlice(Dataset):
+    def __init__(self,
+                 data_dir: str,
+                 data_split_file: str,
+                 group: str,
+                 target_size: tuple[int, int],
+                 transforms: list = [],
+                 normalization: str | None = None):
+        self.image_dir = os.path.join(data_dir, 'images')
+        self.label_dir = os.path.join(data_dir, 'labels')
+        self.target_size = target_size  # 2D target size (H, W)
+        self.transforms = transforms
+        self.normalization = normalization
+        self.group = group
+        data_split_file_path = os.path.join(data_dir, data_split_file)
+        with open(data_split_file_path, 'r') as file:
+            data_split = json.load(file)
+        self.case_names = data_split[group]
+
+    def __len__(self):
+        return len(self.case_names)
+
+    def __getitem__(self, idx):
+        case_name = self.case_names[idx]
+
+        image_path = os.path.join(self.image_dir, f"{case_name}.nii.gz")
+        label_path = os.path.join(self.label_dir, f"{case_name}.json")
+
+        # Load image data
+        nii_image = nib.load(image_path)
+        image_data = nii_image.get_fdata().astype(np.float32)  # shape: (X, Y, Z[, C])
+
+        if image_data.ndim == 3:
+            image_data = image_data[..., np.newaxis]  # Add channel dim if missing
+
+        image_data = np.transpose(image_data, (3, 2, 1, 0))  # (C, Z, Y, X)
+        image = torch.from_numpy(image_data)  # Tensor of shape (C, Z, H, W)
+
+        # Choose slice index
+        z_dim = image.shape[1]
+        mid_start = z_dim // 4
+        mid_end = 3 * z_dim // 4
+
+        if self.group == 'train':
+            slice_idx = random.randint(mid_start, mid_end - 1)
+        else:
+            slice_idx = (mid_start + mid_end) // 2
+
+        image2d = image[:, slice_idx]  # shape: (C, H, W)
+
+        # Resize if needed
+        if self.target_size:
+            image2d = image2d.unsqueeze(0)  # (1, C, H, W)
+            image2d = interpolate(image2d, size=self.target_size, mode='bilinear')
+            image2d = image2d.squeeze(0)
+
+        # Normalization
+        if self.normalization == "zScoreFirstChannelBased":
+            mean = image2d[0].mean()
+            std = image2d[0].std()
+            image2d = (image2d - mean) / std
+
+        # Load label
+        with open(label_path, 'r') as file:
+            label_dict = json.load(file)
+            label = label_dict['label']
+            if label_dict['age'] is None:
+                label_dict['age'] = float('nan')
+            if label_dict['menopausal_status'][:3] == 'pre':
+                label_dict['menopausal_status'] = 'pre'
+            elif label_dict['menopausal_status'][:4] == 'peri':
+                label_dict['menopausal_status'] = 'peri'
+
+        label = torch.tensor(label, dtype=torch.long)
+
+        # Apply any 2D transforms
+        if self.transforms:
+            for transform in self.transforms:
+                image2d = transform(image2d)
+
+        return image2d, label, label_dict
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Dataloader for NIfTI images with fixed image size.")
