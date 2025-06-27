@@ -54,7 +54,7 @@ search_space = {
     "x_y_resolution": tune.quniform(50, 150, 1),
     "z_resolution": tune.quniform(16, 50, 1),
     "normalization": tune.choice(["none", "zScoreFirstChannelBased"]),
-    "model_key": tune.choice(["swin3d_t", "mc3_18", "r2plus1d_18", "r3d_18", "s3d"])
+    "model_key": tune.choice(["swin3d_t", "mc3_18", "r2plus1d_18", "r3d_18"])
 }
 
 if __name__ == "__main__":
@@ -74,7 +74,7 @@ if __name__ == "__main__":
             trainable=trainable_with_resources,
             param_space=search_space,
             tune_config=tune.TuneConfig(
-                num_samples=100,
+                num_samples=120,
                 max_concurrent_trials=int(os.environ.get("MAX_CONCURRENT_TRIALS", 2))
             ),
             run_config=RunConfig(
