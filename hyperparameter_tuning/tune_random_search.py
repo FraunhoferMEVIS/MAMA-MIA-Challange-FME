@@ -46,13 +46,15 @@ def train_func(config):
         tune.report({"mean_5_fold_ranking_score": 0, "balanced_accuracy": 0})
 
 search_space = {
-    "learning_rate": tune.loguniform(1e-6, 1e-3),
-    "weight_decay": tune.loguniform(1e-5, 1e-2),
-    "batch_size": tune.quniform(16, 50, 1),
-    "label_smoothing": tune.uniform(0, 0.1),
+    "optimizer": tune.choice(["sgd", "adamw"]),
+    "learning_rate": tune.loguniform(1e-4, 1e-1),
+    "final_learning_rate": tune.loguniform(1e-8, 1e-2),
+    "momentum": tune.uniform(0.8, 0.98),
+    "weight_decay": tune.loguniform(1e-6, 1e-1),
+    "batch_size": tune.quniform(16, 32, 1),
+    "label_smoothing": tune.loguniform(0.0001, 0.1),
     "x_y_resolution": tune.quniform(50, 150, 1),
     "z_resolution": tune.quniform(16, 50, 1),
-    "normalization": tune.choice(["none", "zScoreFirstChannelBased"]),
     "model_key": tune.choice(["swin3d_t", "mc3_18", "r2plus1d_18", "r3d_18"])
 }
 
