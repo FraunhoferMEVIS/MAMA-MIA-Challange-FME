@@ -3,7 +3,7 @@ import json
 import argparse
 import torch
 from torch.utils.data import DataLoader
-from torch.optim import AdamW
+from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
@@ -29,7 +29,7 @@ def train_model(config: dict, output_dir: str) -> float:
     selected_fairness_variables = config.get('fairness_variables', ['age', 'breast_density', 'menopausal_status'])
     print(f"Fairness variables: {selected_fairness_variables}")
 
-    spatial_dimensions = config.get('spatial_dimensions', 3)
+    spatial_dimensions = len(config['target_size'])
 
     if spatial_dimensions == 3:
         data_augmentation_transforms = [random_mirroring,
@@ -64,12 +64,14 @@ def train_model(config: dict, output_dir: str) -> float:
                               batch_size=config['batch_size'],
                               shuffle=True,
                               pin_memory=True,
-                              num_workers=config['num_workers'])
+                              num_workers=config['num_workers'],
+                              persistent_workers=True)
     val_loader = DataLoader(val_dataset,
                             batch_size=config['batch_size'],
                             shuffle=False,
                             pin_memory=True,
-                            num_workers=config['num_workers'])
+                            num_workers=config['num_workers'],
+                            persistent_workers=True)
 
     # Model
     model_key = config['model_key']
@@ -80,12 +82,22 @@ def train_model(config: dict, output_dir: str) -> float:
     # Loss, optimizer, scheduler
     class_weights = torch.Tensor(config['class_weights']).to(device)
     criterion = CrossEntropyLoss(weight=class_weights, label_smoothing=config['label_smoothing'])
-    optimizer = AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
-    scheduler = CosineAnnealingLR(optimizer, T_max=config['epochs'])
+    
+    momentum = config.get('momentum', 0.9)
+    optimizer_name = config.get('optimizer_name', 'adamw')
+    learning_rate = config['learning_rate']
+    weight_decay = config['weight_decay']
+    match optimizer_name:
+        case 'adamw':
+            optimizer = AdamW(model.parameters(), lr=learning_rate, betas=(momentum, 0.999), weight_decay=weight_decay)
+        case 'sgd':
+            optimizer = SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+    scheduler = CosineAnnealingLR(optimizer, T_max=config['epochs'], eta_min=config.get('final_learning_rate', 0))
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     best_ranking_score = 0.0
     ranking_scores = []
+    balanced_accuracies = []
 
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, 'loss_log.csv')
@@ -117,6 +129,7 @@ def train_model(config: dict, output_dir: str) -> float:
             selected_fairness_variables, epoch=epoch, log_path=log_path,
             verbose=False
         )
+        balanced_accuracy = fairness_metrics['balanced_accuracy']
         
         scheduler.step()
 
@@ -124,12 +137,12 @@ def train_model(config: dict, output_dir: str) -> float:
         with open(log_path, 'a') as f:
             f.write(f"{epoch},{train_loss:.4f},{val_loss:.4f}\n")
 
-        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f}")
+        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f}  | Bal. Accuracy: {balanced_accuracy:.4f}")
 
-        balanced_accuracy = fairness_metrics['balanced_accuracy']
         # Only do best model updates if the balanced accuracy is > 0.5
         if balanced_accuracy > 0.5:
             ranking_scores.append(ranking_score)
+            balanced_accuracies.append(balanced_accuracy)
             if ranking_score > best_ranking_score:
                 best_ranking_score = ranking_score
                 torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
@@ -142,9 +155,14 @@ def train_model(config: dict, output_dir: str) -> float:
         ranking_scores.sort(reverse=True)
         top_4_ranking_scores = ranking_scores[:4]
         top_4_ranking_average = np.mean(top_4_ranking_scores)
+        balanced_accuracies.sort(reverse=True)
+        top_4_balanced_accuracies = balanced_accuracies[:4]
+        top_4_balanced_accuracy_average = np.mean(top_4_balanced_accuracies)
     else:
         top_4_ranking_average = 0.5
-    return top_4_ranking_average
+        top_4_balanced_accuracy_average = 0.5
+
+    return top_4_ranking_average, top_4_balanced_accuracy_average
 
 def main():
     parser = argparse.ArgumentParser(description="Train Swin3D on NIfTI dataset")

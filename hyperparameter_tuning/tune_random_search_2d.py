@@ -10,6 +10,7 @@ def run_fold(sampled_config, fold_idx):
     with open(os.environ["BASE_CONFIG"], 'r') as f:
         config = json.load(f)
 
+    # TODO: Update search space with new parameters and start new run
     config.update({
         "learning_rate": sampled_config["learning_rate"],
         "weight_decay": sampled_config["weight_decay"],
@@ -26,20 +27,23 @@ def run_fold(sampled_config, fold_idx):
                               tune.get_context().get_experiment_name(),
                               f"trial_{tune.get_context().get_trial_id()}_fold_{fold_idx}")
     os.makedirs(output_dir, exist_ok=True)
-    best_ranking_score = train_model(config, output_dir)
-    return best_ranking_score
+    best_ranking_score, balanced_accuracy = train_model(config, output_dir)
+    return best_ranking_score, balanced_accuracy
 
 def train_func(config):
     try:
         fold_scores = []
+        fold_balanced_accuracies = []
         for fold in range(1, 6):
-            score = run_fold(config, fold)
+            score, balanced_accuracy = run_fold(config, fold)
             fold_scores.append(score)
+            fold_balanced_accuracies.append(balanced_accuracy)
         avg_score = np.mean(fold_scores)
-        tune.report({"mean_5_fold_ranking_score": avg_score})
+        avg_balanced_accuracy = np.mean(fold_balanced_accuracies)
+        tune.report({"mean_5_fold_ranking_score": avg_score, "balanced_accuracy": avg_balanced_accuracy})
     except torch.OutOfMemoryError:
         # Handle OOM configurations by reporting a small metric value
-        tune.report({"mean_5_fold_ranking_score": 0})
+        tune.report({"mean_5_fold_ranking_score": 0, "balanced_accuracy": 0})
 
 search_space = {
     "learning_rate": tune.loguniform(1e-6, 1e-2),
