@@ -1,160 +1,12 @@
-# ==================== MAMA-MIA CHALLENGE SAMPLE SUBMISSION ====================
-#
-# This is the official sample submission script for the **MAMA-MIA Challenge**, 
-# covering both tasks:
-#
-#   1. Primary Tumour Segmentation (Task 1)
-#   2. Treatment Response Classification (Task 2)
-#
-# ----------------------------- SUBMISSION FORMAT -----------------------------
-# Participants must implement a class `Model` with one or two of these methods:
-#
-#   - `predict_segmentation(output_dir)`: required for Task 1
-#       > Must output NIfTI files named `{patient_id}.nii.gz` in a folder
-#       > called `pred_segmentations/`
-#
-#   - `predict_classification(output_dir)`: required for Task 2
-#       > Must output a CSV file `predictions.csv` in `output_dir` with columns:
-#           - `patient_id`: patient identifier
-#           - `pcr`: binary label (1 = pCR, 0 = non-pCR)
-#           - `score`: predicted probability (flaot between 0 and 1)
-#
-#   - `predict_classification(output_dir)`: if a single model handles both tasks
-#       > Must output NIfTI files named `{patient_id}.nii.gz` in a folder
-#       > called `pred_segmentations/`
-#       > Must output a CSV file `predictions.csv` in `output_dir` with columns:
-#           - `patient_id`: patient identifier
-#           - `pcr`: binary label (1 = pCR, 0 = non-pCR)
-#           - `score`: predicted probability (flaot between 0 and 1)
-#
-# You can submit:
-#   - Only Task 1 (implement `predict_segmentation`)
-#   - Only Task 2 (implement `predict_classification`)
-#   - Both Tasks (implement both methods independently or define `predict_segmentation_and_classification` method)
-#
-# ------------------------ SANITY-CHECK PHASE ------------------------
-#
-# ✅ Before entering the validation or test phases, participants must pass the **Sanity-Check phase**.
-#   - This phase uses **4 samples from the test set** to ensure your submission pipeline runs correctly.
-#   - Submissions in this phase are **not scored**, but must complete successfully within the **20-minute timeout limit**.
-#   - Use this phase to debug your pipeline and verify output formats without impacting your submission quota.
-#
-# 💡 This helps avoid wasted submissions on later phases due to technical errors.
-#
-# ------------------------ SUBMISSION LIMITATIONS ------------------------
-#
-# ⚠️ Submission limits are strictly enforced per team:
-#   - **One submission per day**
-#   - **Up to 15 submissions total on the validation set**
-#   - **Only 1 final submission on the test set**
-#
-# Plan your development and testing accordingly to avoid exhausting submissions prematurely.
-#
-# ----------------------------- RUNTIME AND RESOURCES -----------------------------
-#
-# > ⚠️ VERY IMPORTANT: Each image has a **timeout of 5 minutes** on the compute worker.
-#   - **Validation Set**: 58 patients → total budget ≈ 290 minutes
-#   - **Test Set**: 516 patients → total budget ≈ 2580 minutes
-#
-# > The compute worker environment is based on the Docker image:
-#       `lgarrucho/codabench-gpu:latest`
-#
-# > You can install additional dependencies via `requirements.txt`.
-#   Please ensure all required packages are listed there.
-#
-# ----------------------------- SEGMENTATION DETAILS -----------------------------
-#
-# This example uses `nnUNet v2`, which is compatible with the GPU compute worker.
-# Note the following nnUNet-specific constraints:
-#
-# ✅ `predict_from_files_sequential` MUST be used for inference.
-#     - This is because nnUNet’s multiprocessing is incompatible with the compute container.
-#     - In our environment, a single fold prediction using `predict_from_files_sequential` 
-#       takes approximately **1 minute per patient**.
-#
-# ✅ The model uses **fold 0 only** to reduce runtime.
-# 
-# ✅ Predictions are post-processed by applying a breast bounding box mask using 
-#    metadata provided in the per-patient JSON file.
-#
-# ----------------------------- CLASSIFICATION DETAILS -----------------------------
-#
-# If using predicted segmentations for Task 2 classification:
-#   - Save them in `self.predicted_segmentations` inside `predict_segmentation()`
-#   - You can reuse them in `predict_classification()`
-#   - Or perform Task 1 and Task 2 inside `predict_segmentation_and_classification`
-#
-# ----------------------------- DATASET INTERFACE -----------------------------
-# The provided `dataset` object is a `RestrictedDataset` instance and includes:
-#
-#   - `dataset.get_patient_id_list() → list[str]`  
-#         Patient IDs for current split (val/test)
-#
-#   - `dataset.get_dce_mri_path_list(patient_id) → list[str]`  
-#         Paths to all image channels (typically pre and post contrast)
-#         - iamge_list[0] corresponds to the pre-contrast image path
-#         - iamge_list[1] corresponds to the first post-contrast image path and so on
-#
-#   - `dataset.read_json_file(patient_id) → dict`  
-#         Metadata dictionary per patient, including:
-#         - breast bounding box (`primary_lesion.breast_coordinates`)
-#         - scanner metadata (`imaging_data`), etc...
-#
-# Example JSON structure:
-# {
-#   "patient_id": "XXX_XXX_SXXXX",
-#   "primary_lesion": {
-#     "breast_coordinates": {
-#         "x_min": 1, "x_max": 158,
-#         "y_min": 6, "y_max": 276,
-#         "z_min": 1, "z_max": 176
-#     }
-#   },
-#   "imaging_data": {
-#     "bilateral": true,
-#     "dataset": "HOSPITAL_X",
-#     "site": "HOSPITAL_X",
-#     "scanner_manufacturer": "SIEMENS",
-#     "scanner_model": "Aera",
-#     "field_strength": 1.5,
-#     "echo_time": 1.11,
-#     "repetition_time": 3.35
-#   }
-# }
-#
-# ----------------------------- RECOMMENDATIONS -----------------------------
-# ✅ We recommend to always test your submission first in the Sanity-Check Phase.
-#    As in Codabench the phases need to be sequential and they cannot run in parallel,
-#    we will open a secondary MAMA-MIA Challenge Codabench page with a permanen Sanity-Check phase.
-#   That way you won't lose submission trials to the validation or even wore, the test set.
-# ✅ We recommend testing your solution locally and measuring execution time per image.
-# ✅ Use lightweight models or limit folds if running nnUNet.
-# ✅ Keep all file paths, patient IDs, and formats **exactly** as specified.
-# ✅ Ensure your output folders are created correctly (e.g. `pred_segmentations/`)
-# ✅ For faster runtime, only select a single image for segmentation.
-#
-# ------------------------ COPYRIGHT ------------------------------------------
-#
-# © 2025 Lidia Garrucho. All rights reserved.
-# Unauthorized use, reproduction, or distribution of any part of this competition's 
-# materials is prohibited without explicit permission.
-#
-# ------------------------------------------------------------------------------
-
-# === MANDATORY IMPORTS ===
 import os
 import pandas as pd
 import shutil
-
-# === OPTIONAL IMPORTS: only needed if you modify or extend nnUNet input/output handling ===
-# You can remove unused imports above if not needed for your solution
 import numpy as np
 import torch
 import torchvision
 import SimpleITK as sitk
 import nibabel as nib
 from scipy import ndimage
-# === nnUNetv2 IMPORTS ===
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 
@@ -242,7 +94,7 @@ class Model:
         # IMPORTANT: the only method that works inside the Docker container is predict_from_files_sequential
         # This method will predict all images in the list and save them in the output directory
         ret = predictor.predict_from_files_sequential(nnunet_images, output_dir_nnunet, save_probabilities=False,
-                                                       overwrite=True, folder_with_segs_from_prev_stage=None)
+                                                      overwrite=True, folder_with_segs_from_prev_stage=None)
         print("Predictions saved to:", os.listdir(output_dir_nnunet))
         
        # === Final output folder (MANDATORY name) ===
@@ -262,19 +114,72 @@ class Model:
             segmentation = sitk.ReadImage(seg_path)
             segmentation_array = sitk.GetArrayFromImage(segmentation)
             
+            # Get image spacing for distance calculation
+            spacing = segmentation.GetSpacing()
+            
+            # 1. Apply breast mask first
             patient_info = self.dataset.read_json_file(patient_id)
             if not patient_info or "primary_lesion" not in patient_info:
-                continue
+                # If no patient info or primary lesion, just proceed with the raw segmentation
+                masked_segmentation = segmentation_array
+            else:
+                coords = patient_info["primary_lesion"]["breast_coordinates"]
+                x_min, x_max = coords["x_min"], coords["x_max"]
+                y_min, y_max = coords["y_min"], coords["y_max"]
+                z_min, z_max = coords["z_min"], coords["z_max"]
+                
+                masked_segmentation = np.zeros_like(segmentation_array)
+                masked_segmentation[x_min:x_max, y_min:y_max, z_min:z_max] = \
+                    segmentation_array[x_min:x_max, y_min:y_max, z_min:z_max]
             
-            coords = patient_info["primary_lesion"]["breast_coordinates"]
-            x_min, x_max = coords["x_min"], coords["x_max"]
-            y_min, y_max = coords["y_min"], coords["y_max"]
-            z_min, z_max = coords["z_min"], coords["z_max"]
+            # 2. Process connected components
+            labeled_array, num_components = ndimage.label(masked_segmentation, 
+                                                          structure=ndimage.generate_binary_structure(masked_segmentation.ndim, connectivity=3))
             
-            masked_segmentation = np.zeros_like(segmentation_array)
-            masked_segmentation[x_min:x_max, y_min:y_max, z_min:z_max] = \
-                segmentation_array[x_min:x_max, y_min:y_max, z_min:z_max]            
-            masked_seg_image = sitk.GetImageFromArray(masked_segmentation)
+            if num_components > 0:
+                component_sizes = np.bincount(labeled_array.ravel())
+                component_sizes[0] = 0  # Ignore background
+                largest_component_label = np.argmax(component_sizes)
+                
+                largest_component_mask = (labeled_array == largest_component_label).astype(np.uint8)
+                
+                # Create a temporary binary image for the largest component to compute EDT
+                temp_largest_component_image = sitk.GetImageFromArray(largest_component_mask)
+                temp_largest_component_image.SetSpacing(spacing)
+                
+                # Compute Euclidean Distance Transform (EDT) for the largest component
+                # The EDT gives the distance from each background pixel to the nearest foreground pixel
+                # We need the inverse: distance from each foreground pixel (of other components) to the largest component
+                edt_image = sitk.GetArrayFromImage(sitk.SignedMaurerDistanceMap(temp_largest_component_image, 
+                                                                                squaredDistance=False, 
+                                                                                useImageSpacing=True, 
+                                                                                insideIsPositive=False))
+                
+                # Pixels inside the largest component will have negative distance or zero.
+                # Pixels outside will have positive distance. We are interested in positive distances.
+                
+                # Threshold for keeping components within 1 cm (10 mm)
+                distance_threshold_mm = 10.0 # 1 cm = 10 mm
+                
+                final_segmentation_array = np.copy(largest_component_mask)
+                
+                for label in range(1, num_components + 1):
+                    if label == largest_component_label:
+                        continue
+                    
+                    current_component_mask = (labeled_array == label)
+                    
+                    # Check if any part of the current component is within the distance threshold
+                    # We look at the EDT values at the locations of the current component
+                    min_distance_to_largest = np.min(edt_image[current_component_mask])
+                    
+                    if min_distance_to_largest <= distance_threshold_mm:
+                        final_segmentation_array[current_component_mask] = 1 # Keep this component
+            else:
+                final_segmentation_array = masked_segmentation # No components found, so keep as is (likely empty)
+
+
+            masked_seg_image = sitk.GetImageFromArray(final_segmentation_array.astype(np.uint8)) # Ensure type is uint8 for binary
             masked_seg_image.CopyInformation(segmentation)
 
             # MANDATORY: the segmentation masks should be named using the patient_id
