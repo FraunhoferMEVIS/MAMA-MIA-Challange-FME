@@ -27,6 +27,8 @@ def get_model(model_key: str, pretrained: bool = False, weights_path: str = None
             return get_efficientnet_b4(pretrained, weights_path)
         case "efficientnet_b5":
             return get_efficientnet_b5(pretrained, weights_path)
+        case "efficientnet_v2_s":
+            return get_efficientnet_v2_s(pretrained, weights_path)
         case "resnet18":
             return get_resnet18(pretrained, weights_path)
         case "resnet34":
@@ -155,6 +157,18 @@ def get_efficientnet_b4(pretrained: bool, weights_path: str):
     else:
         weights = None
     model = models.efficientnet_b4(weights=weights)
+    model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, 2)
+    if weights_path:
+        weights = torch.load(weights_path, weights_only=True)
+        model.load_state_dict(weights)
+    return model
+
+def get_efficientnet_v2_s(pretrained: bool, weights_path: str):
+    if pretrained:
+        weights = models.EfficientNet_V2_S_Weights.IMAGENET1K_V1
+    else:
+        weights = None
+    model = models.efficientnet_v2_s(weights=weights)
     model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, 2)
     if weights_path:
         weights = torch.load(weights_path, weights_only=True)
