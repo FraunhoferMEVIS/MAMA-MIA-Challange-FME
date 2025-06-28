@@ -96,8 +96,7 @@ def train_model(config: dict, output_dir: str) -> float:
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     best_ranking_score = 0.0
-    ranking_scores = []
-    balanced_accuracies = []
+    best_balanced_accuracy = 0.0
 
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, 'loss_log.csv')
@@ -137,32 +136,20 @@ def train_model(config: dict, output_dir: str) -> float:
         with open(log_path, 'a') as f:
             f.write(f"{epoch},{train_loss:.4f},{val_loss:.4f}\n")
 
-        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f}  | Bal. Accuracy: {balanced_accuracy:.4f}")
+        print(f"Epoch {epoch} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Ranking Score: {ranking_score:.4f} | Bal. Accuracy: {balanced_accuracy:.4f}")
 
         # Only do best model updates if the balanced accuracy is > 0.5
         if balanced_accuracy > 0.5:
-            ranking_scores.append(ranking_score)
-            balanced_accuracies.append(balanced_accuracy)
             if ranking_score > best_ranking_score:
                 best_ranking_score = ranking_score
+                best_balanced_accuracy = balanced_accuracy
                 torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
                 print(f"New best ranking score: {best_ranking_score:.4f}")
 
     # Save final model
     torch.save(model.state_dict(), os.path.join(output_dir, 'final_model.pth'))
 
-    if len(ranking_scores) > 0:
-        ranking_scores.sort(reverse=True)
-        top_4_ranking_scores = ranking_scores[:4]
-        top_4_ranking_average = np.mean(top_4_ranking_scores)
-        balanced_accuracies.sort(reverse=True)
-        top_4_balanced_accuracies = balanced_accuracies[:4]
-        top_4_balanced_accuracy_average = np.mean(top_4_balanced_accuracies)
-    else:
-        top_4_ranking_average = 0.5
-        top_4_balanced_accuracy_average = 0.5
-
-    return top_4_ranking_average, top_4_balanced_accuracy_average
+    return best_ranking_score, best_balanced_accuracy
 
 def main():
     parser = argparse.ArgumentParser(description="Train Swin3D on NIfTI dataset")
