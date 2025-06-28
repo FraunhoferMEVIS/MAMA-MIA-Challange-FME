@@ -57,7 +57,8 @@ if __name__ == "__main__":
         "label_smoothing": tune.loguniform(0.0001, 0.1),
         "x_y_resolution": tune.quniform(50, 200, 1),
         "model_key": tune.choice(["convnext_tiny", "efficientnet_b2", "efficientnet_b3", "efficientnet_b4",
-                                "efficientnet_b5", "resnet18", "resnet34", "resnet50", "swin_t", "swin_v2_t"])
+                                "efficientnet_b5", "efficientnet_v2_s", "resnet18", "resnet34", "resnet50",
+                                "swin_t", "swin_v2_t"])
     }
 
     trainable_with_resources = tune.with_resources(train_func, {"cpu": 4, "gpu": 1})
