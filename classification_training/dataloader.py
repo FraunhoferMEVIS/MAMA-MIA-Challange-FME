@@ -153,6 +153,102 @@ class NiftiImageDataset2DCenterSlice(Dataset):
 
         return image2d, label, label_dict
 
+class NiftiImageDataset2DAttention(Dataset):
+    """
+    Dataset for 2.5D attention models.
+    Extracts multiple 2D slices from a 3D NIfTI image, stacks them along a new 'slice' dimension,
+    and ensures each slice has 3 channels for compatibility with pretrained 2D encoders.
+    The output shape is (C=3, num_slices, H, W).
+    """
+    def __init__(self,
+                 data_dir: str,
+                 data_split_file: str,
+                 group: str,
+                 target_size: tuple[int, int, int], # Expected (num_slices, H, W) for attention model
+                 num_slices: int = 5, # Number of slices to extract for 2.5D
+                 transforms: list = [],
+                 normalization: str | None = None):
+        self.image_dir = os.path.join(data_dir, 'images')
+        self.label_dir = os.path.join(data_dir, 'labels')
+        # target_size here refers to the final H, W for each slice and implicitly num_slices
+        # target_size[0] will be interpreted as the target number of slices, target_size[1:] as H, W
+        self.target_h, self.target_w = target_size[1], target_size[2]
+        self.num_slices = num_slices # Use this explicitly for clarity, though target_size[0] could be used too.
+        self.transforms = transforms
+        self.normalization = normalization
+        data_split_file_path = os.path.join(data_dir, data_split_file)
+        with open(data_split_file_path, 'r') as file:
+            data_split = json.load(file)
+        self.case_names = data_split[group]
+        self.group = group # Store group for different slice selection strategies
+
+    def __len__(self):
+        return len(self.case_names)
+
+    def __getitem__(self, idx):
+        case_name = self.case_names[idx]
+        
+        image_path = os.path.join(self.image_dir, f"{case_name}.nii.gz")
+        label_path = os.path.join(self.label_dir, f"{case_name}.json")
+
+        nii_image = nib.load(image_path)
+        image_data = nii_image.get_fdata().astype(np.float32)
+        image = torch.from_numpy(image_data).permute(3, 2, 1, 0) # To (C, Z, Y, X)
+
+        original_z_dim = image.shape[1] # This is the Z dimension (depth)
+
+        if self.group == 'training':
+            # For training, randomly select a starting slice for a contiguous block of num_slices
+            if original_z_dim >= self.num_slices:
+                start_slice = random.randint(0, original_z_dim - self.num_slices)
+                selected_slices = list(range(start_slice, start_slice + self.num_slices))
+            else: # If not enough slices, repeat slices to meet num_slices
+                selected_slices = list(range(original_z_dim))
+                selected_slices = np.random.choice(selected_slices, self.num_slices, replace=True).tolist()
+                selected_slices.sort() # Keep them in order for better representation
+        else: # Validation/Testing: select equally spaced slices
+            if original_z_dim >= self.num_slices:
+                # Select num_slices equally spaced slices
+                selected_slices = np.linspace(0, original_z_dim - 1, self.num_slices, dtype=int).tolist()
+            else: # If not enough slices, repeat slices to meet num_slices
+                selected_slices = list(range(original_z_dim))
+                selected_slices = np.random.choice(selected_slices, self.num_slices, replace=True).tolist()
+                selected_slices.sort()
+
+        # image_slices will be (C_original, num_slices, H_original, W_original)
+        image_slices = image[:, selected_slices, :, :]
+
+        processed_slices = []
+        for i in range(image_slices.shape[1]): # Iterate over selected depth slices
+            slice_2d = image_slices[:, i, :, :].unsqueeze(0) # (1, C_original, H_original, W_original)
+            slice_2d = interpolate(slice_2d, size=(self.target_h, self.target_w), mode='bilinear') # (1, 3, target_H, target_W)
+            processed_slices.append(slice_2d.squeeze(0)) # (3, target_H, target_W)
+
+        image = torch.stack(processed_slices, dim=1)
+
+        if self.normalization == "zScoreFirstChannelBased":
+            mean = image[0].mean()
+            std = image[0].std()
+            image = (image - mean) / std
+
+        with open(label_path, 'r') as file:
+            label_dict = json.load(file)
+            label = label_dict['label']
+            if label_dict['age'] == None:
+                label_dict['age'] = float('nan')
+            if label_dict['menopausal_status'][:3] == 'pre':
+                label_dict['menopausal_status'] = 'pre'
+            elif label_dict['menopausal_status'][:4] == 'peri':
+                label_dict['menopausal_status'] = 'peri'
+            
+        label = torch.tensor(label, dtype=torch.long)
+
+        if self.transforms:
+            for transform in self.transforms:
+                image = transform(image)
+
+        return image, label, label_dict
+
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Dataloader for NIfTI images with fixed image size.")
     parser.add_argument('--dataset_path', type=str, required=True,
