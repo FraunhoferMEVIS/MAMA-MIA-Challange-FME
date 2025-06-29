@@ -11,7 +11,6 @@ def run_fold(sampled_config, fold_idx):
         config = json.load(f)
 
     config.update({
-        "optimizer": sampled_config["optimizer"],
         "learning_rate": sampled_config["learning_rate"],
         "final_learning_rate": sampled_config["final_learning_rate"],
         "momentum": sampled_config["momentum"],
@@ -49,9 +48,8 @@ def train_func(config):
 
 if __name__ == "__main__":
     search_space = {
-        "optimizer": tune.choice(["sgd", "adamw"]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "final_learning_rate": tune.loguniform(1e-8, 1e-2),
+        "learning_rate": tune.loguniform(1e-6, 1e-3),
+        "final_learning_rate": tune.loguniform(1e-8, 1e-4),
         "momentum": tune.uniform(0.8, 0.98),
         "weight_decay": tune.loguniform(1e-6, 1e-1),
         "batch_size": tune.quniform(16, 32, 1),
