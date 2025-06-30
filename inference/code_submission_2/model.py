@@ -207,7 +207,7 @@ class Model:
         """
         patient_ids = self.dataset.get_patient_id_list()
         predictions = []
-        if os.environ['DEBUG_MAMA_MIA'] == "True":
+        if os.environ.get('DEBUG_MAMA_MIA') == "True":
             os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
         
         for patient_id in patient_ids:
@@ -240,7 +240,7 @@ class Model:
                 std = cropped_image[0].std()
                 cropped_image = (cropped_image - mean ) / std
 
-                if os.environ['DEBUG_MAMA_MIA'] == "True":
+                if os.environ.get('DEBUG_MAMA_MIA') == "True":
                     cropped_image_transposed = cropped_image.transpose((3,2,1,0))
                     cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
                     cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
@@ -265,7 +265,7 @@ class Model:
                         result = scipy.special.softmax(logits)
                         results.append(result)
                 results_array = np.concatenate(results, axis=0)
-                if os.environ['DEBUG_MAMA_MIA'] == "True":
+                if os.environ.get('DEBUG_MAMA_MIA') == "True":
                     print(results_array)
                 mean_result = results_array.mean(axis=0)
                 probability = mean_result[1]
