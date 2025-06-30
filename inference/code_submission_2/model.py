@@ -6,6 +6,7 @@ import torch
 import torchvision
 import SimpleITK as sitk
 import nibabel as nib
+import onnxruntime
 from scipy import ndimage
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -21,7 +22,7 @@ class Model:
         # MANDATOR
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
-        self.nnunet_model_folder = '/app/ingested_program/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetResEncUNetLPlans24GB__3d_fullres'
+        self.nnunet_model_folder = '/app/ingested_program/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetPlans24GB__3d_fullres'
         self.classification_model_folder = "/app/ingested_program/classification_models"
         
 

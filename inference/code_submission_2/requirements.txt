@@ -1,1 +1,2 @@
 # Add here additional packages not included in the base MAMA-MIA Docker (lgarrucho/codabench-gpu:latest)
+onnxruntime-gpu==1.22.0
