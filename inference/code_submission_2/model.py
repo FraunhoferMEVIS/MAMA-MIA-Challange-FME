@@ -25,7 +25,7 @@ class Model:
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
         self.nnunet_model_folder = '/app/ingested_program/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetPlans24GB__3d_fullres'
-        self.classification_model_folders = "/app/ingested_program/classification_models_test"
+        self.classification_model_folders = "/app/ingested_program/classification_models"
         
 
     def predict_segmentation(self, output_dir):
