@@ -260,8 +260,8 @@ class Model:
                     flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
                     for dimensions in flipping_dimensions:
                         flipped_image = torch.flip(input_image, dims=dimensions)
-                        input_image = flipped_image.numpy()
-                        logits = session.run(None, {'input': input_image})[0]
+                        input_image_onnx = flipped_image.numpy()
+                        logits = session.run(None, {'input': input_image_onnx})[0]
                         result = scipy.special.softmax(logits)
                         results.append(result)
                 results_array = np.concatenate(results, axis=0)
