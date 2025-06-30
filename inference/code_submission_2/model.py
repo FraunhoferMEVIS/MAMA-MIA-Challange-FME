@@ -239,6 +239,7 @@ class Model:
                 mean = cropped_image[0].mean()
                 std = cropped_image[0].std()
                 cropped_image = (cropped_image - mean ) / std
+
                 if os.environ['DEBUG_MAMA_MIA'] == "True":
                     cropped_image_transposed = cropped_image.transpose((3,2,1,0))
                     cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
@@ -250,11 +251,12 @@ class Model:
                     with open(os.path.join(self.classification_model_folders, model_folder, "config.json"), 'r') as file:
                         config = json.load(file)
                     resampling_size = config['target_size']
-                    input_image = torch.from_numpy(cropped_image)
-                    input_image = input_image.unsqueeze(0)
-                    input_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear')
                     model_path_global = os.path.join(self.classification_model_folders, model_folder, 'model.onnx')
                     session = onnxruntime.InferenceSession(model_path_global, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+
+                    input_image = torch.from_numpy(cropped_image)
+                    input_image = input_image.unsqueeze(0)
+                    input_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear').half()
                     flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
                     for dimensions in flipping_dimensions:
                         flipped_image = torch.flip(input_image, dims=dimensions)
