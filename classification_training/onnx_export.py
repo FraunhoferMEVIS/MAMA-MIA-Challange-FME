@@ -1,6 +1,6 @@
 import argparse
 import torch
-from models import get_model
+from classification_training.models import get_model
 
 def parse_input_size(input_size_str):
     # Convert string like "1,3,24,75,75" to tuple of ints

@@ -7,6 +7,8 @@ import torchvision
 import SimpleITK as sitk
 import nibabel as nib
 import onnxruntime
+import json
+import scipy.special
 from scipy import ndimage
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -23,7 +25,7 @@ class Model:
         self.dataset = dataset  # Restricted Access to Private Dataset
         self.predicted_segmentations = None  # Optional: stores path to predicted segmentations
         self.nnunet_model_folder = '/app/ingested_program/Dataset125_MAMA_MIA_expert_segmentations_1_subtraction/nnUNetTrainer__nnUNetPlans24GB__3d_fullres'
-        self.classification_model_folder = "/app/ingested_program/classification_models"
+        self.classification_model_folders = "/app/ingested_program/classification_models"
         
 
     def predict_segmentation(self, output_dir):
@@ -221,9 +223,6 @@ class Model:
                 image_data = np.expand_dims(image_data, axis=0)
                 images.append(image_data)
             image_array = np.concatenate(images, axis=0)
-            mean = image_array[0].mean()
-            std = image_array[0].std()
-            image_array = (image_array - mean ) / std
 
             seg_path = os.path.join(self.predicted_segmentations, f"{patient_id}.nii.gz")
             if not os.path.exists(seg_path):
@@ -237,32 +236,35 @@ class Model:
                 pcr_prediction = 0
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
+                mean = cropped_image[0].mean()
+                std = cropped_image[0].std()
+                cropped_image = (cropped_image - mean ) / std
                 if os.environ['DEBUG_MAMA_MIA'] == "True":
                     cropped_image_transposed = cropped_image.transpose((3,2,1,0))
                     cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
                     cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
                     nib.save(cropped_nii, cropped_nii_path)
 
-                input_image = torch.from_numpy(cropped_image)
-                input_image = input_image.to(torch.device('cuda'))
-                input_image = input_image.unsqueeze(0)
-                input_image = torch.nn.functional.interpolate(input_image, (24, 75, 75), mode='trilinear')
                 results = []
-                for weigths_path in os.listdir(self.classification_model_folder):
-                    weights_path_global = os.path.join(self.classification_model_folder, weigths_path)
-                    weights = torch.load(weights_path_global, weights_only=True)
-                    model = torchvision.models.video.swin3d_t()
-                    model.head = torch.nn.Linear(model.head.in_features, 2)  # 2 labels
-                    model.load_state_dict(weights)
-                    model.eval()
-                    model.to(torch.device('cuda'))
+                for model_folder in os.listdir(self.classification_model_folders):
+                    with open(os.path.join(self.classification_model_folders, model_folder, "config.json"), 'r') as file:
+                        config = json.load(file)
+                    resampling_size = config['target_size']
+                    input_image = torch.from_numpy(cropped_image)
+                    input_image = input_image.unsqueeze(0)
+                    input_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear')
+                    model_path_global = os.path.join(self.classification_model_folders, model_folder, 'model.onnx')
+                    session = onnxruntime.InferenceSession(model_path_global, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
                     flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
                     for dimensions in flipping_dimensions:
                         flipped_image = torch.flip(input_image, dims=dimensions)
-                        logits = model(flipped_image)
-                        result = torch.nn.functional.softmax(logits, dim=1)
-                        results.append(result.cpu().detach().numpy())
+                        input_image = flipped_image.numpy()
+                        logits = session.run(None, {'input': input_image})[0]
+                        result = scipy.special.softmax(logits)
+                        results.append(result)
                 results_array = np.concatenate(results, axis=0)
+                if os.environ['DEBUG_MAMA_MIA'] == "True":
+                    print(results_array)
                 mean_result = results_array.mean(axis=0)
                 probability = mean_result[1]
                 pcr_prediction = int(probability > 0.5)
