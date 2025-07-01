@@ -67,7 +67,7 @@ def main(base_dir):
                 save_dir=breast_save_dir,
                 model_path=BREAST_MODEL_PATH
             )
-            breast_mask_file = os.path.join(breast_save_dir, "predicted_mask.npy")
+            breast_mask_file = os.path.join(breast_save_dir, f"{patient_id}_preprocessed.npy")
 
             # Step 2: Predict FGT Mask (with breast mask as input)
             run_prediction(
@@ -77,7 +77,7 @@ def main(base_dir):
                 model_path=FGT_MODEL_PATH,
                 input_mask=breast_save_dir
             )
-            fgt_mask_file = os.path.join(fgt_save_dir, "predicted_mask.npy")
+            fgt_mask_file = os.path.join(fgt_save_dir, f"{patient_id}_preprocessed.npy")
 
             # Step 3: Convert to NIfTI
             convert_numpy_to_nifti(breast_mask_file, os.path.join(breast_nifti_dir, f"{patient_id}_breast_mask.nii.gz"))
