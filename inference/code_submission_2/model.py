@@ -210,6 +210,18 @@ class Model:
         if os.environ.get('DEBUG_MAMA_MIA') == "True":
             os.makedirs(os.path.join(output_dir, 'classification_inputs'), exist_ok=True)
         
+        model_sessions = []
+        model_resampling = []
+
+        for model_folder in os.listdir(self.classification_model_folders):
+            with open(os.path.join(self.classification_model_folders, model_folder, "config.json"), 'r') as file:
+                config = json.load(file)
+            resampling_size = config['target_size']
+            model_path_global = os.path.join(self.classification_model_folders, model_folder, 'model.onnx')
+            session = onnxruntime.InferenceSession(model_path_global, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+            model_sessions.append(session)
+            model_resampling.append(resampling_size)
+
         for patient_id in patient_ids:
             print(f'Classifying patient {patient_id}...')
             image_paths = self.dataset.get_dce_mri_path_list(patient_id)
@@ -239,6 +251,8 @@ class Model:
                 mean = cropped_image[0].mean()
                 std = cropped_image[0].std()
                 cropped_image = (cropped_image - mean ) / std
+                input_image = torch.from_numpy(cropped_image)
+                input_image = input_image.unsqueeze(0)
 
                 if os.environ.get('DEBUG_MAMA_MIA') == "True":
                     cropped_image_transposed = cropped_image.transpose((3,2,1,0))
@@ -247,19 +261,11 @@ class Model:
                     nib.save(cropped_nii, cropped_nii_path)
 
                 results = []
-                for model_folder in os.listdir(self.classification_model_folders):
-                    with open(os.path.join(self.classification_model_folders, model_folder, "config.json"), 'r') as file:
-                        config = json.load(file)
-                    resampling_size = config['target_size']
-                    model_path_global = os.path.join(self.classification_model_folders, model_folder, 'model.onnx')
-                    session = onnxruntime.InferenceSession(model_path_global, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-
-                    input_image = torch.from_numpy(cropped_image)
-                    input_image = input_image.unsqueeze(0)
-                    input_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear').half()
+                for session, resampling_size in zip(model_sessions, model_resampling):
+                    resampled_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear').half()
                     flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
                     for dimensions in flipping_dimensions:
-                        flipped_image = torch.flip(input_image, dims=dimensions)
+                        flipped_image = torch.flip(resampled_image, dims=dimensions)
                         input_image_onnx = flipped_image.numpy()
                         logits = session.run(None, {'input': input_image_onnx})[0]
                         result = scipy.special.softmax(logits)
