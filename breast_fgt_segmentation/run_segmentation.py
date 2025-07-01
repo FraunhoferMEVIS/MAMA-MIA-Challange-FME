@@ -54,7 +54,7 @@ def main(base_dir):
                 continue
 
             print(f"Processing {patient_id}...")
-            image_file = os.path.join(patient_folder, f"{patient_id}_preprocessed.npy")
+            image_dir = os.path.join(patient_folder)
             breast_save_dir = os.path.join(breast_numpy_dir, patient_id)
             fgt_save_dir = os.path.join(fgt_numpy_dir, patient_id)
             os.makedirs(breast_save_dir, exist_ok=True)
@@ -62,7 +62,7 @@ def main(base_dir):
 
             # Step 1: Predict Breast Mask
             run_prediction(
-                image_path=image_file,
+                image_path=image_dir,
                 target="breast",
                 save_dir=breast_save_dir,
                 model_path=BREAST_MODEL_PATH
@@ -71,11 +71,11 @@ def main(base_dir):
 
             # Step 2: Predict FGT Mask (with breast mask as input)
             run_prediction(
-                image_path=image_file,
+                image_path=image_dir,
                 target="dv",
                 save_dir=fgt_save_dir,
                 model_path=FGT_MODEL_PATH,
-                input_mask=breast_mask_file
+                input_mask=breast_save_dir
             )
             fgt_mask_file = os.path.join(fgt_save_dir, "predicted_mask.npy")
 
