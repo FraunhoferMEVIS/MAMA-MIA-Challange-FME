@@ -102,24 +102,13 @@ def process_nifti_to_npy(input_dir, output_dir):
             nifti_img = nib.load(nifti_filepath)
             image_array = nifti_img.get_fdata().astype(np.float32)
 
-            # --- Orientation Handling (Optional but Recommended for Consistency) ---
-            # NIfTI files embed orientation. It's good practice to ensure all
-            # your images are consistently oriented (e.g., RAS - Right, Anterior, Superior).
-            # This example uses `as_closest_orthogonal` for simplicity, but for precise
-            # orientation control, you might need to use `nib.orientations`.
-            # If your data is already consistently oriented, this might not be strictly necessary.
-            
-            # Example for reorienting to RAS (if needed)
-            # original_affine = nifti_img.affine
-            # original_orientation = nib.orientations.aff2ori(original_affine)
-            # target_orientation = nib.orientations.axcodes2ornt(('R', 'A', 'S'))
-            # transform = nib.orientations.orientations_as_affine(original_orientation, target_orientation)
-            # image_array = nib.apply_affine(transform, image_array)
-            # The above is more complex. For typical cases, ensure data is loaded consistently.
-            # `nib.load().get_fdata()` typically gives data in array order.
+            original_affine = nifti_img.affine
+            original_orientation = nib.orientations.aff2ori(original_affine)
+            target_orientation = nib.orientations.axcodes2ornt(('L', 'P', 'I'))
+            transform = nib.orientations.orientations_as_affine(original_orientation, target_orientation)
+            image_array = nib.apply_affine(transform, image_array)
 
             # Intensity Normalization
-            # Using normalize_image as it's generally good for MRI contrast
             normalized_image_array = zscore_image(normalize_image(image_array))
             
             os.mkdir(output_path / subject_folder)
