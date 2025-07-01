@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-from code_submission_2.model import Model
+from code_submission_3.model import Model
 
 
 class Dataset:
