@@ -9,6 +9,7 @@ import nibabel as nib
 import onnxruntime
 import json
 import scipy.special
+import time
 from scipy import ndimage
 from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -39,6 +40,9 @@ class Model:
         Returns:
             str: Path to folder with predicted segmentation masks.
         """
+
+        if os.environ.get('DEBUG_MAMA_MIA') == "True":
+            segmentation_start_time = time.time()
 
         # === Set required nnUNet paths ===
         # Not strictly mandatory if pre-set in Docker env, but avoids missing variable warnings
@@ -192,6 +196,11 @@ class Model:
         # Save path for Task 2 if needed
         self.predicted_segmentations = output_dir_final
 
+        if os.environ.get('DEBUG_MAMA_MIA') == "True":
+            segmentation_stop_time = time.time()
+            segmentation_duration = segmentation_stop_time - segmentation_start_time
+            print(f'Segmentation took {segmentation_duration} seconds.')
+
         return output_dir_final
     
     def predict_classification(self, output_dir):
@@ -205,6 +214,10 @@ class Model:
         Returns:
             pd.DataFrame: DataFrame with patient_id, pcr prediction, and score.
         """
+        
+        if os.environ.get('DEBUG_MAMA_MIA') == "True":
+            classification_start_time = time.time()
+        
         patient_ids = self.dataset.get_patient_id_list()
         predictions = []
         if os.environ.get('DEBUG_MAMA_MIA') == "True":
@@ -285,6 +298,12 @@ class Model:
             })
         prediction_df = pd.DataFrame(predictions)
         prediction_df.to_csv(os.path.join(output_dir, 'predictions.csv'))
+
+        if os.environ.get('DEBUG_MAMA_MIA') == "True":
+            classification_stop_time = time.time()
+            classification_duration = classification_stop_time - classification_start_time
+            print(f'Classification took {classification_duration} seconds.')
+
         return prediction_df
 
     def _get_largest_component_crop(self, mask: np.ndarray) -> tuple[tuple, np.ndarray]:
