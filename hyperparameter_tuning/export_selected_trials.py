@@ -54,6 +54,9 @@ def main(args):
 
             onnx_output_path = dst_folder / "model.onnx"
 
+            if os.path.exists(onnx_output_path):
+                continue
+
             print(f"Exporting ONNX for {folder_name} with model '{model_key}' and input size {target_size_onnx}")
             export_model(model_key, weights_path, onnx_output_path, target_size_onnx, half_precision=True)
 
