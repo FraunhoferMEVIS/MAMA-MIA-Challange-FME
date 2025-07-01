@@ -103,10 +103,10 @@ def process_nifti_to_npy(input_dir, output_dir):
             image_array = nifti_img.get_fdata().astype(np.float32)
 
             original_affine = nifti_img.affine
-            original_orientation = nib.orientations.aff2ori(original_affine)
+            original_orientation = nib.orientations.axcodes2ornt(nib.orientations.aff2axcodes(original_affine))
             target_orientation = nib.orientations.axcodes2ornt(('L', 'P', 'I'))
-            transform = nib.orientations.orientations_as_affine(original_orientation, target_orientation)
-            image_array = nib.apply_affine(transform, image_array)
+            transform = nib.orientations.ornt_transform(original_orientation, target_orientation)
+            image_array = nib.apply_orientation(image_array, transform)
 
             # Intensity Normalization
             normalized_image_array = zscore_image(normalize_image(image_array))
