@@ -23,6 +23,7 @@ def main(input_folder, output_csv):
     for filename in sorted(os.listdir(input_folder)):
         if filename.endswith('.nii.gz'):
             file_path = os.path.join(input_folder, filename)
+            print(f'Processing file {file_path}...', flush=True)
             breast_vol, parenchyma_vol, density = compute_volumes_and_density(file_path)
             results.append({
                 'filename': filename,
