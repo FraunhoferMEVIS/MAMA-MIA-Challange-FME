@@ -48,14 +48,14 @@ def train_func(config):
 
 if __name__ == "__main__":
     search_space = {
-        "learning_rate": tune.loguniform(1e-6, 1e-3),
-        "final_learning_rate": tune.loguniform(1e-8, 1e-4),
-        "momentum": tune.uniform(0.8, 0.98),
-        "weight_decay": tune.loguniform(1e-6, 1e-1),
-        "batch_size": tune.quniform(16, 32, 1),
-        "label_smoothing": tune.loguniform(0.0001, 0.1),
-        "x_y_resolution": tune.quniform(50, 150, 1),
-        "z_resolution": tune.quniform(16, 50, 1),
+        "learning_rate": tune.loguniform(1e-6, 1e-4),
+        "final_learning_rate": tune.loguniform(1e-8, 1e-5),
+        "momentum": tune.uniform(0.8, 0.99),
+        "weight_decay": tune.loguniform(1e-7, 6e-2),
+        "batch_size": tune.quniform(20, 30, 1),
+        "label_smoothing": tune.loguniform(1e-5, 1e-1),
+        "x_y_resolution": tune.quniform(50, 140, 1),
+        "z_resolution": tune.quniform(16, 40, 1),
         "model_key": tune.choice(["swin3d_t", "mc3_18", "r2plus1d_18", "r3d_18"])
     }
 
