@@ -53,7 +53,7 @@ class Model:
         predictor = nnUNetPredictor(
             tile_step_size=0.5,
             use_gaussian=True,
-            use_mirroring=False,
+            use_mirroring=True,
             perform_everything_on_device=True,
             device=torch.device('cuda'),
             verbose=False,
@@ -119,9 +119,6 @@ class Model:
             segmentation = sitk.ReadImage(seg_path)
             segmentation_array = sitk.GetArrayFromImage(segmentation)
             
-            # Get image spacing for distance calculation
-            spacing = segmentation.GetSpacing()
-            
             # 1. Apply breast mask first
             patient_info = self.dataset.read_json_file(patient_id)
             if not patient_info or "primary_lesion" not in patient_info:
@@ -137,52 +134,17 @@ class Model:
                 masked_segmentation[x_min:x_max, y_min:y_max, z_min:z_max] = \
                     segmentation_array[x_min:x_max, y_min:y_max, z_min:z_max]
             
-            # 2. Process connected components
+            # 2. Keep only the largest connected component
             labeled_array, num_components = ndimage.label(masked_segmentation, 
                                                           structure=ndimage.generate_binary_structure(masked_segmentation.ndim, connectivity=3))
-            
+
             if num_components > 0:
                 component_sizes = np.bincount(labeled_array.ravel())
                 component_sizes[0] = 0  # Ignore background
                 largest_component_label = np.argmax(component_sizes)
-                
-                largest_component_mask = (labeled_array == largest_component_label).astype(np.uint8)
-                
-                # Create a temporary binary image for the largest component to compute EDT
-                temp_largest_component_image = sitk.GetImageFromArray(largest_component_mask)
-                temp_largest_component_image.SetSpacing(spacing)
-                
-                # Compute Euclidean Distance Transform (EDT) for the largest component
-                # The EDT gives the distance from each background pixel to the nearest foreground pixel
-                # We need the inverse: distance from each foreground pixel (of other components) to the largest component
-                edt_image = sitk.GetArrayFromImage(sitk.SignedMaurerDistanceMap(temp_largest_component_image, 
-                                                                                squaredDistance=False, 
-                                                                                useImageSpacing=True, 
-                                                                                insideIsPositive=False))
-                
-                # Pixels inside the largest component will have negative distance or zero.
-                # Pixels outside will have positive distance. We are interested in positive distances.
-                
-                # Threshold for keeping components within 1 cm (10 mm)
-                distance_threshold_mm = 10.0 # 1 cm = 10 mm
-                
-                final_segmentation_array = np.copy(largest_component_mask)
-                
-                for label in range(1, num_components + 1):
-                    if label == largest_component_label:
-                        continue
-                    
-                    current_component_mask = (labeled_array == label)
-                    
-                    # Check if any part of the current component is within the distance threshold
-                    # We look at the EDT values at the locations of the current component
-                    min_distance_to_largest = np.min(edt_image[current_component_mask])
-                    
-                    if min_distance_to_largest <= distance_threshold_mm:
-                        final_segmentation_array[current_component_mask] = 1 # Keep this component
+                final_segmentation_array = (labeled_array == largest_component_label).astype(np.uint8)
             else:
-                final_segmentation_array = masked_segmentation # No components found, so keep as is (likely empty)
-
+                final_segmentation_array = np.zeros_like(masked_segmentation, dtype=np.uint8)
 
             masked_seg_image = sitk.GetImageFromArray(final_segmentation_array.astype(np.uint8)) # Ensure type is uint8 for binary
             masked_seg_image.CopyInformation(segmentation)
