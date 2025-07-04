@@ -63,7 +63,7 @@ class Model:
         # === Load your trained model from a specific fold ===
         predictor.initialize_from_trained_model_folder(
             self.nnunet_model_folder,
-            use_folds=(0,1,2,3,4),
+            use_folds=(0,1,2,4),
             checkpoint_name='checkpoint_best.pth')
         
         # === Build nnUNet-compatible input images folder ===
@@ -221,24 +221,30 @@ class Model:
                 pcr_prediction = 0
             else:
                 cropped_image, _ = self._crop_to_largest_component(image_array, segmentation_array)
-                mean = cropped_image[0].mean()
-                std = cropped_image[0].std()
-                cropped_image = (cropped_image - mean ) / std
-                input_image = torch.from_numpy(cropped_image)
-                input_image = input_image.unsqueeze(0)
-
+                
                 if os.environ.get('DEBUG_MAMA_MIA') == "True":
                     cropped_image_transposed = cropped_image.transpose((3,2,1,0))
                     cropped_nii = nib.Nifti1Image(cropped_image_transposed, nii_image.affine, nii_image.header)
                     cropped_nii_path = os.path.join(output_dir, "classification_inputs", f"{patient_id}.nii.gz")
                     nib.save(cropped_nii, cropped_nii_path)
 
+                z_dim = cropped_image.shape[1]
+                slice_idx = z_dim // 2
+                image2d = cropped_image[:, slice_idx]  # shape: (C, H, W)
+                image2d = torch.from_numpy(image2d)
+                image2d = image2d.unsqueeze(0)  # (1, C, H, W)
+
                 results = []
                 for session, resampling_size in zip(model_sessions, model_resampling):
-                    resampled_image = torch.nn.functional.interpolate(input_image, resampling_size, mode='trilinear').half()
-                    flipping_dimensions = [tuple(), (2,), (3,), (4,), (2, 3), (2, 4), (3, 4), (2, 3, 4)]
+                    image2d_resampled = torch.nn.functional.interpolate(image2d, resampling_size, mode='bilinear')
+                    mean = image2d_resampled[:,1].mean()
+                    std = image2d_resampled[:,1].std()
+                    image2d_resampled = (image2d_resampled - mean) / std
+                    image2d_resampled = image2d_resampled.half()
+                    
+                    flipping_dimensions = [tuple(), (2,), (3,), (2, 3)]
                     for dimensions in flipping_dimensions:
-                        flipped_image = torch.flip(resampled_image, dims=dimensions)
+                        flipped_image = torch.flip(image2d_resampled, dims=dimensions)
                         input_image_onnx = flipped_image.numpy()
                         logits = session.run(None, {'input': input_image_onnx})[0]
                         result = scipy.special.softmax(logits)
