@@ -22,3 +22,12 @@ lgarrucho/codabench-gpu:latest `
  -c "python /app/ingested_program/test_model.py /dataset /output"
 ```
 
+## Folder structure
+- breast_fgt_segmentation: Segment breast and FGT in breast MRI
+- classification_training: Train classification models
+- data_prepocessing_classification: Preprocessing of classification data
+- data_preprocessing_segmentation: Preprocessing of segmentation data
+- hyperparameter_tuning: Hyperparameter tuning for classification models
+- inference: Submission code
+- tests: Small tests for selected components
+
