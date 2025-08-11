@@ -2,7 +2,7 @@
 
 This repository collects the preprocessing, training and inference code for the [MAMA-MIA challenge](https://www.ub.edu/mama-mia/) submission of team FME.
 
-Team Members: Kai Geissler, Jan-Raphael Schäfer
+Team Members: Kai Geissler, Jan Raphael Schäfer
 
 ## Final Submission
 
