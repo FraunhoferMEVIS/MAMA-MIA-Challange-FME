@@ -57,3 +57,11 @@ lgarrucho/codabench-gpu:latest `
 - `inference`: Submission code
 - `tests`: Small tests for selected components
 
+## License
+This project is under a non-commercial license, for details refer to the license file.
+
+## Disclaimer
+The software is not qualified for use as a medical product or as part thereof. Provided 'as is' without specific verification or validation.
+
+## Contact
+Kai Geissler, Fraunhofer Institute for Digital Medicine MEVIS, Bremen, Germany. kai.geissler\<at\>mevis.fraunhofer.de.
