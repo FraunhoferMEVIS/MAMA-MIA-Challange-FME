@@ -4,6 +4,20 @@ This repository collects the preprocessing, training and inference code for the 
 
 Team Members: Kai Geissler, Jan Raphael Schäfer
 
+If you use this code, please cite our arXiv preprint describing the methodology:
+
+```bibtex
+@misc{geissler2026subtractionbasedtumorsegmentationlesioncentered,
+      title={Subtraction-Based Tumor Segmentation and Lesion-Centered pCR Prediction for the MAMA-MIA Challenge}, 
+      author={Kai Geissler and Raphael Schäfer},
+      year={2026},
+      eprint={2608.29162},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2608.29162}, 
+}
+```
+
 ## Final Submission
 
 ### Inference code
